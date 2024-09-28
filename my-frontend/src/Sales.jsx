@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './Sales.css';
-
+import { useNavigate } from 'react-router-dom';
 const Sales = () => {
+  const navigate = useNavigate();
   const [salesSummary, setSalesSummary] = useState({});
   const [language, setLanguage] = useState('English');
   const [error, setError] = useState('');
@@ -45,6 +46,9 @@ const Sales = () => {
 
   return (
     <div className="sales-container">
+      <button onClick={() => navigate('/')} className="back-arrow">
+        &#8592;
+      </button>
       <h1 className="sales-title">{translations[language].title}</h1>
       <button className="language-toggle" onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')}>
         {language === 'English' ? 'اردو' : 'English'}

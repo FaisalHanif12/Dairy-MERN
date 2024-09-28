@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './RelativesKhata.css';
-
+import { useNavigate } from 'react-router-dom';
 const RelativesKhata = () => {
-  const [date, setDate] = useState(() => {
+  const navigate = useNavigate();
+    const [date, setDate] = useState(() => {
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
     const month = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
@@ -339,6 +340,9 @@ const RelativesKhata = () => {
   };
   return (
     <div className="expenditure-container">
+      <button onClick={() => navigate('/')} className="back-arrow">
+        &#8592;
+      </button>
       <h1 className="expenditure-title">{translations[language].relativesKhata}</h1>
       <button onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')} className="language-toggle">
         {language === 'English' ? 'اردو' : 'English'}

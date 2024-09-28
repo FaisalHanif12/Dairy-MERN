@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './Expenditure.css';
-
+import { useNavigate } from 'react-router-dom';
 const Expenditure = () => {
+  const navigate = useNavigate();
   const [date, setDate] = useState(() => {
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
@@ -320,6 +321,9 @@ const Expenditure = () => {
 
   return (
     <div className="expenditure-container">
+      <button onClick={() => navigate('/')} className="back-arrow">
+        &#8592;
+      </button>
       <h1 className="expenditure-title">{translations[language].title}</h1>
       <button onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')} className="language-toggle">
         {language === 'English' ? 'اردو' : 'English'}

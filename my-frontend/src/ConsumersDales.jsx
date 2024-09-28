@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './ConsumersDales.css';
+import { useNavigate } from 'react-router-dom';
 
 const ConsumersDales = () => {
-
+  const navigate = useNavigate();
   const [source, setSource] = useState('');
   const [quantity, setQuantity] = useState('');
   const [amount, setAmount] = useState('');
@@ -386,7 +387,12 @@ const ConsumersDales = () => {
 
 
   return (
+    
     <div className="expenditure-container">
+
+<button onClick={() => navigate('/')} className="back-arrow">
+        &#8592;
+      </button>
       <h1 className="expenditure-title">{translations[language].title}</h1>
       <button onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')} className="language-toggle">
         {language === 'English' ? 'اردو' : 'English'}

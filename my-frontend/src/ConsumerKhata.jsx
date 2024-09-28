@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./ConsumerKhata.css";
-
+import { useNavigate } from 'react-router-dom';
 const ConsumerKhata = () => {
+  const navigate = useNavigate();
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -708,6 +709,9 @@ const ConsumerKhata = () => {
 
   return (
     <div className="consumer-khata-container">
+       <button onClick={() => navigate('/')} className="back-arrow1">
+        &#8592;
+      </button>
       <h1 className="header">{translations[language].consumerKhata}</h1>
       <button
         onClick={() =>

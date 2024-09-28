@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './Employee.css';
-
+import { useNavigate } from 'react-router-dom';
 const Employee = () => {
-
+  const navigate = useNavigate();
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -642,6 +642,9 @@ const handleUpdateWasooliClick = (consumerId, transactionId) => {
 
   return (
     <div className="consumer-khata-container">
+       <button onClick={() => navigate('/')} className="back-arrow1">
+        &#8592;
+      </button>
       <h1 className="header"> {translations[language].employeekhata}</h1>
       <button onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')} className="language-toggle">
         {language === 'English' ? 'اردو' : 'English'}
