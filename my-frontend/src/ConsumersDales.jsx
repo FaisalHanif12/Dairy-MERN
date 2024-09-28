@@ -16,8 +16,17 @@ const ConsumersDales = () => {
   const [showMonthlySales, setShowMonthlySales] = useState(false);
   const [language, setLanguage] = useState('English'); // Default to English
   // Define fetchData outside of useEffect
+  const [uniqueNames, setUniqueNames] = useState(() => {
+    // Load saved names from localStorage when the component mounts
+    const savedNames = JSON.parse(localStorage.getItem('uniqueNames'));
+    return savedNames || [];
+  });
   const [showModal, setShowModal] = useState(false); // You already have this for controlling the visibility of the modal
   const [modalMessage, setModalMessage] = useState(''); // Add this line to manage the modal message
+
+  useEffect(() => {
+    localStorage.setItem('uniqueNames', JSON.stringify(uniqueNames));
+  }, [uniqueNames]);
 
   const translations = {
     English: {
@@ -211,6 +220,10 @@ const ConsumersDales = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+
+    if (!uniqueNames.includes(source)) {
+      setUniqueNames((prev) => [...prev, source]);
+    }
   
     const expensePayload = {
       Date: date,
@@ -412,12 +425,19 @@ const ConsumersDales = () => {
         <input
           type="text"
           id="source"
+          list="previous-names"
           value={source}
           onChange={(e) => setSource(e.target.value)}
           className="expenditure-input"
           placeholder={translations[language].ConsumerName}
           required
         />
+
+<datalist id="previous-names">
+          {uniqueNames.map((name, index) => (
+            <option key={index} value={name} />
+          ))}
+        </datalist>
 
         <label htmlFor="quantity" className="expenditure-label">{translations[language].quantity}:</label>
         <input
