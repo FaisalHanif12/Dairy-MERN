@@ -100,26 +100,30 @@ const ConsumersDales = () => {
 
   const fetchData = async () => {
     try {
-        // Updated fetch request with explicit Accept header for JSON responses
         const response = await fetch('http://localhost:3001/consumerssale', {
             headers: {
-                'Accept': 'application/json', // Explicitly expect JSON responses
+                'Accept': 'application/json',
             },
         });
 
-        // Check if the response was successful
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Validate content type to be JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             throw new Error('Expected JSON response, but received unexpected content type');
         }
 
-        // Parse the JSON response and process data
         const data = await response.json();
+
+        // Handle empty data
+        if (data.length === 0) {
+            console.log("No data available"); // Log a message or handle it in the UI
+            setExpenses([]);  // Set an empty state for expenses
+            return;
+        }
+
         const processedData = data.map(expense => ({
             ...expense,
             Quantity: parseFloat(expense.Quantity),
@@ -127,18 +131,9 @@ const ConsumersDales = () => {
             Total: expense.Total ? parseFloat(expense.Total).toFixed(2) : undefined,
         }));
 
-        // Log processed data for debugging
-        console.log("Processed data:", processedData);
-
-        // Assuming setExpenses is a state setter from useState hook
-        // Update your component's state with the processed data
         setExpenses(processedData);
     } catch (error) {
-        // Log the error and optionally handle it by setting some error state
         console.error('There was an error fetching the sales data:', error);
-
-        // Assuming setError is a state setter for holding error information
-        // setError(error.message) or similar could be used here
     }
 };
 
@@ -215,64 +210,77 @@ const ConsumersDales = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-
+  
     const expensePayload = {
       Date: date,
       Name: source,
       Quantity: parseFloat(quantity),
       UnitPrice: parseFloat(amount),
     };
-
+  
     try {
       let response;
+      
       if (editIndex >= 0) {
         // Assuming your expense objects use 'idConsumersSale' as the key for ID
-        const expenseId = expenses[editIndex].idConsumersSale; // Adjust this line accordingly
+        const expenseId = expenses[editIndex]?._id || expenses[editIndex]?.idConsumersSale; // Ensure it checks both _id and idConsumersSale
+  
+        if (!expenseId) {
+          throw new Error('No valid ID found for the selected sale.');
+        }
+  
+        // PUT request to update an existing expense
         response = await fetch(`http://localhost:3001/consumerssale/${expenseId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
         });
-
-        const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
-        const alertMessage = `${translations[language].record} `;
-
-        // Replace alert(alertMessage); with:
+  
+               
+        const alertMessage = `${translations[language].record}`;
+        
+        // Show modal with the alert message
         setModalMessage(alertMessage);
         setShowModal(true);
-
+        
+        
+      
+  
       } else {
-        // Adding a new expense
+        // POST request to add a new expense (remains unchanged)
         response = await fetch('http://localhost:3001/consumerssale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
         });
-
+  
         const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
         const alertMessage = `${quantity} ${translations[language].KiloMilk} ${translations[language].added}`;
-        // Replace alert(alertMessage); with:
+        
+        // Show modal with added message
         setModalMessage(alertMessage);
         setShowModal(true);
       }
+  
+      // Check for response errors
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      await fetchData(); // Refresh data
-
+  
+      // Fetch updated data after saving
+      await fetchData();
+  
       // Reset form fields and editIndex
-      //setDate('');
       setSource('');
       setQuantity('');
       setAmount('');
       setEditIndex(-1);
-
-
+  
     } catch (error) {
       console.error('There was an error saving the sale:', error);
     }
   };
+  
 
   // This function is called when the delete button is clicked.
   // It sets up the alert and marks which item should be deleted if confirmed.
@@ -285,9 +293,9 @@ const ConsumersDales = () => {
   const handleAlertConfirm = async (isConfirmed) => {
     if (isConfirmed && deleteIndex != null) {
       const expense = expenses[deleteIndex];
-      if (expense && expense.idConsumersSale) { // Make sure the ID field matches your data structure
+      if (expense && expense._id) { // Use _id as it's the correct field for MongoDB documents
         try {
-          const response = await fetch(`http://localhost:3001/consumerssale/${expense.idConsumersSale}`, {
+          const response = await fetch(`http://localhost:3001/consumerssale/${expense._id}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
@@ -315,8 +323,7 @@ const ConsumersDales = () => {
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
-  };
-
+};
 
   const getMonthlyExpenses = () => {
     const monthlyExpenses = expenses.reduce((acc, expense) => {
@@ -357,7 +364,7 @@ const ConsumersDales = () => {
   const handleUpdate = (index) => {
     const expense = expenses[index];
     // Adjust these property names to match your actual expense object structure
-    setDate(expense.Date); // Assuming the date property is named "Date"
+    setDate(new Date(expense.Date).toISOString().split('T')[0]);
     setSource(expense.Name); // Assuming the consumer name property is named "Name"
     setQuantity(expense.Quantity.toString()); // Assuming the quantity property is named "Quantity"
     setAmount(expense.UnitPrice.toString()); // Assuming the unit price property is named "UnitPrice"
@@ -501,8 +508,8 @@ const ConsumersDales = () => {
                       : 'N/A';
                     return (
                       <div key={index} className="expense-card">
-                        <div>{translations[language].date}: {expense.Date}</div>
-                        <div>{translations[language].consumerName}: {expense.Name}</div>
+                     <div>{translations[language].date}: {new Date(expense.Date).toLocaleDateString()}</div>     
+                     <div>{translations[language].consumerName}: {expense.Name}</div>
                         <div>{translations[language].quantity}: {Number.isFinite(expense.Quantity) ? expense.Quantity : 'N/A'}</div>
                         <div>{translations[language].pricePerKilo}: {Number.isFinite(expense.UnitPrice) ? expense.UnitPrice : 'N/A'}</div>
                         <div>{translations[language].total}: {expense.Total}</div>

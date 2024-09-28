@@ -1,11 +1,22 @@
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql2');
-const mysqlPromise = require('mysql2/promise');
 require('dotenv').config();
+const mongoose = require('mongoose');
 const app = express();
-const port = process.env.PORT || 3001;
- 
+const port = process.env.PORT || 3001; // Change to 3002 or any available port
+
+// MongoDB connection
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+.then(() => {
+    console.log('Connected to MongoDB Atlas');
+})
+.catch((err) => {
+    console.error('Error connecting to MongoDB:', err);
+});
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 
@@ -23,83 +34,68 @@ const corsOptionsDelegate = function (req, callback) {
 
 app.use(cors(corsOptionsDelegate));
 
-const dbConfig = {
-    host: process.env.DATABASE_HOST,
-    port: process.env.DATABASE_PORT || 3306,
-    user: process.env.DATABASE_USER,
-    password: process.env.DATABASE_PASSWORD,
-    database: process.env.DATABASE_NAME,
-};
 
 
-let connection;
-const pool = mysqlPromise.createPool(dbConfig);
-
-function handleDisconnect() {
-    connection = mysql.createConnection(dbConfig);
-    connection.connect(err => {
-        if (err) {
-            console.error('Error when connecting to db:', err);
-            setTimeout(handleDisconnect, 2000);
-        } else {
-            console.log('Connected to the database successfully');
-        }
-    });
-
-    connection.on('error', err => {
-        console.error('Database error', err);
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-            handleDisconnect();
-        } else {
-            throw err;
-        }
-    });
-}
-
-handleDisconnect();
-
+const ConsumerSale = require('./models/ConsumerSale');
+const RelativeSale = require('./models/RelativeSale');  // Make sure this line is correct
+const Expenditure = require('./models/Expenditure');
+const ConsumerKhata = require('./models/ConsumerKhata');
+const EmployeeKhata = require('./models/EmployeeKhata');
+const SalesSummary = require('./models/SalesSummary');
+const Wasoolii = require('./models/Wasooli'); // Adjust the path based on where this file is located.
+const Kharchay = require('./models/Kharchay'); // Adjust the path based on where this file is located.
 
 async function updateSalesSummary() {
     try {
-        // Calculate total sales
-        const [totalSales] = await pool.execute(`
-            SELECT SUM(Total) AS total FROM (
-                SELECT Total FROM consumerssale
-                UNION ALL
-                SELECT RTotal AS Total FROM relatives
-            ) AS all_sales;
-        `);
+        // Calculate total sales from consumers
+        const totalSalesConsumers = await ConsumerSale.aggregate([
+            { $group: { _id: null, total: { $sum: "$Total" } } }
+        ]);
+
+        // Calculate total sales from relatives
+        const totalSalesRelatives = await RelativeSale.aggregate([
+            { $group: { _id: null, total: { $sum: "$RTotal" } } }
+        ]);
 
         // Calculate total expenditures
-        const [expenditures] = await pool.execute(`
-            SELECT SUM(amount) AS total FROM expenditure;
-        `);
+        const totalExpenditures = await Expenditure.aggregate([
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
 
-        // Calculate net sales
-        const netSales = (totalSales[0].total || 0) - (expenditures[0].total || 0);
+        // Total sales and net sales calculation
+        const totalSales = (totalSalesConsumers[0]?.total || 0) + (totalSalesRelatives[0]?.total || 0);
+        const totalExpenditure = totalExpenditures[0]?.total || 0;
+        const netSales = totalSales - totalExpenditure;
 
-        // Update sales summary
-        await pool.execute(`
-            UPDATE sales_summary SET 
-                total_sales = ?,
-                net_sales = ?
-            WHERE id = 1;
-        `, [totalSales[0].total || 0, netSales]);
+        // Update or create the sales summary using summaryId
+        await SalesSummary.findOneAndUpdate(
+            { summaryId: 1 }, // Use summaryId to identify the single sales summary record
+            { total_sales: totalSales, net_sales: netSales },
+            { upsert: true, new: true }
+        );
+
+        console.log('Sales summary updated successfully');
     } catch (err) {
         console.error('Failed to update sales summary:', err);
     }
 }
 
+
+
 app.get('/sales_summary', async (req, res) => {
-   
     try {
-        const sql = 'SELECT total_sales, net_sales FROM sales_summary WHERE id = 1;';
-        const [results] = await pool.query(sql);
-        if (results.length === 0) {
-            res.status(404).json({ message: 'Sales summary not found' });
-        } else {
-            res.json(results[0]);
+        // Find the sales summary with the summaryId of 1 (assuming there's only one sales summary record)
+        const salesSummary = await SalesSummary.findOne({ summaryId: 1 });
+
+        if (!salesSummary) {
+            return res.status(404).json({ message: 'Sales summary not found' });
         }
+
+        // Return the total sales and net sales
+        res.json({
+            total_sales: salesSummary.total_sales,
+            net_sales: salesSummary.net_sales
+        });
     } catch (err) {
         console.error('Failed to fetch sales summary:', err);
         res.status(500).json({ error: 'Internal server error' });
@@ -108,50 +104,66 @@ app.get('/sales_summary', async (req, res) => {
 
 
 
-app.get("/consumerssale", (req, res) => {
-    const sql = "SELECT * FROM consumerssale";
-    connection.query(sql, (err, data) => {
-        if (err) {
-            console.error("SQL query error: ", err);
-            res.status(500);
-            res.setHeader('Content-Type', 'application/json');
-            return res.json({ error: err.message });
+
+app.get("/consumerssale", async (req, res) => {
+    try {
+        // Fetch all consumer sales from MongoDB
+        const consumerSales = await ConsumerSale.find();
+
+        if (!consumerSales || consumerSales.length === 0) {
+            return res.status(200).json([]); // Respond with an empty array if no records are found
         }
+
+        // Set content-type to JSON and send the data
         res.setHeader('Content-Type', 'application/json');
-        return res.json(data);
-    });
+        return res.json(consumerSales);
+    } catch (err) {
+        console.error("Error fetching consumer sales: ", err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 
 
-app.get("/relatives", (req, res) => {
-    const sql = "SELECT * FROM relatives";
-    connection.query(sql, (err, data) => {
-        if (err) {
-            console.error("SQL query error: ", err);
-            res.status(500);
-            res.setHeader('Content-Type', 'application/json');
-            return res.status(500).json({ error: err.message });
+app.get("/relatives", async (req, res) => {
+    try {
+        const relativeSales = await RelativeSale.find();
+
+        if (!relativeSales || relativeSales.length === 0) {
+            return res.status(404).json({ message: 'No relative sales found' });
         }
-        return res.json(data);
-    });
+
+        res.setHeader('Content-Type', 'application/json');
+        return res.json(relativeSales);
+    } catch (err) {
+        console.error("Error fetching relative sales: ", err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
-app.get("/expenditure", (req, res) => {
-    const sql = "SELECT * FROM expenditure";
-    connection.query(sql, (err, data) => {
-        if (err) {
-            console.error("SQL query error: ", err);
-            res.status(500);
-            res.setHeader('Content-Type', 'application/json');
-            return res.status(500).json({ error: err.message });
+
+app.get("/expenditure", async (req, res) => {
+    try {
+        // Fetch all expenditures from MongoDB
+        const expenditures = await Expenditure.find();
+
+        // Return an empty array if no expenditures are found
+        if (!expenditures || expenditures.length === 0) {
+            return res.json([]);  // Return an empty array instead of 404
         }
-        return res.json(data);
-    });
+
+        // Set content-type to JSON and send the data
+        res.setHeader('Content-Type', 'application/json');
+        return res.json(expenditures);
+    } catch (err) {
+        console.error("Error fetching expenditure data:", err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
+
+
 
 app.post("/consumerssale", async (req, res) => {
-  
     if (!req.body || typeof req.body !== 'object') {
         return res.status(400).json({ error: "Invalid request body" });
     }
@@ -172,14 +184,24 @@ app.post("/consumerssale", async (req, res) => {
     }
 
     const Total = parsedQuantity * parsedUnitPrice;
-    const sql = "INSERT INTO consumerssale (Date, Name, Quantity, UnitPrice, Total) VALUES (?, ?, ?, ?, ?)";
 
     try {
-        const [result] = await pool.execute(sql, [Date, Name, parsedQuantity, parsedUnitPrice, Total]);
-        await updateSalesSummary();
-        res.status(201).json({ message: 'Sale added successfully', id: result.insertId });
+        // Create a new consumer sale record in MongoDB
+        const newSale = new ConsumerSale({
+            Date,
+            Name,
+            Quantity: parsedQuantity,
+            UnitPrice: parsedUnitPrice,
+            Total
+        });
+
+        // Save the record
+        await newSale.save();
+        await updateSalesSummary(); // Call updateSalesSummary if needed
+
+        res.status(201).json({ message: 'Sale added successfully', id: newSale._id });
     } catch (err) {
-        console.error('Database query error:', err);
+        console.error('Error saving consumer sale:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -193,37 +215,54 @@ app.post("/expenditure", async (req, res) => {
         return res.status(400).json({ error: "Invalid input provided." });
     }
 
-    const sql = "INSERT INTO expenditure (Date, source, amount) VALUES (?, ?, ?)";
-    
     try {
-        const [result] = await pool.execute(sql, [Date, source, amount]);
-        await updateSalesSummary(); // Update the sales summary after adding new expenditure
-        res.status(201).json({ message: 'Expense added successfully', id: result.insertId });
+        // Create a new expenditure document in MongoDB
+        const newExpenditure = new Expenditure({
+            Date,
+            source,
+            amount
+        });
+
+        // Save the expenditure to the database
+        await newExpenditure.save();
+        await updateSalesSummary(); // Update the sales summary if needed
+
+        res.status(201).json({ message: 'Expense added successfully', id: newExpenditure._id });
     } catch (err) {
-        console.error('Database query error:', err);
+        console.error('Error saving expenditure:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
 
-app.post("/relatives", async (req, res) => {
-    const { Date, Rname } = req.body;
-    const Quantity = parseFloat(req.body.Quantity);
-    const RUnitPrice = parseFloat(req.body.RUnitPrice);
 
-    if (isNaN(Quantity) || isNaN(RUnitPrice) || Quantity <= 0 || RUnitPrice <= 0) {
+app.post("/relatives", async (req, res) => {
+    const { Date, Rname, Quantity, RUnitPrice } = req.body;
+
+    const parsedQuantity = parseFloat(Quantity);
+    const parsedRUnitPrice = parseFloat(RUnitPrice);
+
+    if (isNaN(parsedQuantity) || isNaN(parsedRUnitPrice) || parsedQuantity <= 0 || parsedRUnitPrice <= 0) {
         return res.status(400).json({ error: "Invalid Quantity or Unit Price." });
     }
 
-    const RTotal = Quantity * RUnitPrice;
-    const sql = "INSERT INTO relatives (Date, Rname, Quantity, RUnitPrice, RTotal) VALUES (?, ?, ?, ?, ?)";
-    
+    const RTotal = parsedQuantity * parsedRUnitPrice;
+
     try {
-        const [result] = await pool.execute(sql, [Date, Rname, Quantity, RUnitPrice, RTotal]);
-        await updateSalesSummary(); // Update the sales summary after adding a new relative sale
-        res.status(201).json({ message: 'Sale added successfully', id: result.insertId });
+        const newRelativeSale = new RelativeSale({
+            Date,
+            Rname,
+            Quantity: parsedQuantity,
+            RUnitPrice: parsedRUnitPrice,
+            RTotal
+        });
+
+        await newRelativeSale.save();
+        await updateSalesSummary(); // If necessary
+
+        res.status(201).json({ message: 'Sale added successfully', id: newRelativeSale._id });
     } catch (err) {
-        console.error('Database query error:', err);
+        console.error('Error saving relative sale:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -231,308 +270,450 @@ app.post("/relatives", async (req, res) => {
 
 app.put("/consumerssale/:id", async (req, res) => {
     const { Date, Name, Quantity, UnitPrice } = req.body;
-    const Total = Quantity * UnitPrice;
-    const sql = "UPDATE consumerssale SET Date = ?, Name = ?, Quantity = ?, UnitPrice = ?, Total = ? WHERE idConsumersSale = ?";
 
-    try {
-        const [result] = await pool.execute(sql, [Date, Name, Quantity, UnitPrice, Total, req.params.id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'No record found with that ID to update' });
-        }
-        await updateSalesSummary();  // Update the sales summary after modifying a consumer sale
-        res.json({ message: 'Sale updated successfully' });
-    } catch (err) {
-        console.error('Database query error:', err);
-        res.status(500).json({ error: err.message });
+    // Validate Quantity and UnitPrice
+    const parsedQuantity = parseFloat(Quantity);
+    const parsedUnitPrice = parseFloat(UnitPrice);
+    const Total = parsedQuantity * parsedUnitPrice;
+
+    if (isNaN(parsedQuantity) || isNaN(parsedUnitPrice) || parsedQuantity <= 0 || parsedUnitPrice <= 0) {
+        return res.status(400).json({ error: "Invalid Quantity or Unit Price." });
     }
-});
-
-
-app.put("/relatives/:id", async (req, res) => {
-    const { Date, Rname, Quantity, RUnitPrice } = req.body;
-    const RTotal = Quantity * RUnitPrice; // Ensure this calculation is correct and not resulting in NaN
-    const sql = "UPDATE relatives SET Date = ?, Rname = ?, Quantity = ?, RUnitPrice = ?, RTotal = ? WHERE idRelatives = ?";
 
     try {
-        const [result] = await connection.promise().query(sql, [Date, Rname, Quantity, RUnitPrice, RTotal, req.params.id]);
-        if (result.affectedRows === 0) {
+        // Update the consumer sale in MongoDB
+        const result = await ConsumerSale.findByIdAndUpdate(
+            req.params.id,
+            {
+                Date,
+                Name,
+                Quantity: parsedQuantity,
+                UnitPrice: parsedUnitPrice,
+                Total
+            },
+            { new: true } // Return the updated document
+        );
+
+        if (!result) {
             return res.status(404).json({ message: 'No record found with that ID to update' });
         }
-        await updateSalesSummary();  // Update the sales summary after modifying a relative's sale
-        res.json({ message: 'Sale updated successfully' });
+
+        await updateSalesSummary();  // Update the sales summary after modifying a consumer sale
+
+        res.json({ message: 'Sale updated successfully', updatedRecord: result });
     } catch (err) {
-        console.error('Database query error:', err);
+        console.error('Error updating consumer sale:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+
+// Update a relative sale
+app.put("/relatives/:id", async (req, res) => {
+    const { Date, Rname, Quantity, RUnitPrice } = req.body;
+
+    const parsedQuantity = parseFloat(Quantity);
+    const parsedRUnitPrice = parseFloat(RUnitPrice);
+    const RTotal = parsedQuantity * parsedRUnitPrice;
+
+    if (isNaN(parsedQuantity) || isNaN(parsedRUnitPrice) || parsedQuantity <= 0 || parsedRUnitPrice <= 0) {
+        return res.status(400).json({ error: "Invalid Quantity or Unit Price." });
+    }
+
+    try {
+        const result = await RelativeSale.findByIdAndUpdate(
+            req.params.id,
+            {
+                Date,
+                Rname,
+                Quantity: parsedQuantity,
+                RUnitPrice: parsedRUnitPrice,
+                RTotal
+            },
+            { new: true }
+        );
+
+        if (!result) {
+            return res.status(404).json({ message: 'No record found with that ID to update' });
+        }
+
+        await updateSalesSummary();
+
+        res.json({ message: 'Sale updated successfully', updatedRecord: result });
+    } catch (err) {
+        console.error('Error updating relative sale:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 app.put("/expenditure/:id", async (req, res) => {
     const { Date, source, amount } = req.body;
 
-    const sql = "UPDATE expenditure SET Date = ?, source = ?, amount = ? WHERE idexpenditure = ?";
+    // Validate amount
+    const parsedAmount = parseFloat(amount);
+
+    if (isNaN(parsedAmount) || parsedAmount <= 0 || !Date.trim() || !source.trim()) {
+        return res.status(400).json({ error: "Invalid input: Ensure date, source, and amount are valid." });
+    }
 
     try {
-        const [result] = await connection.promise().query(sql, [Date, source, amount, req.params.id]);
-        if (result.affectedRows === 0) {
+        // Update the expenditure in MongoDB
+        const result = await Expenditure.findByIdAndUpdate(
+            req.params.id,
+            { Date, source, amount: parsedAmount },
+            { new: true } // Return the updated document
+        );
+
+        if (!result) {
             return res.status(404).json({ message: 'No record found with that ID to update' });
         }
+
         await updateSalesSummary();  // Update the sales summary after modifying an expenditure
-        res.json({ message: 'Expenditure updated successfully' });
+
+        res.json({ message: 'Expenditure updated successfully', updatedRecord: result });
     } catch (err) {
-        console.error('Database query error:', err);
+        console.error('Error updating expenditure:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
+
 app.delete("/consumerssale/:id", async (req, res) => {
-    const sql = "DELETE FROM consumerssale WHERE idConsumersSale = ?";
+    const { id } = req.params;
+    console.log("Received ID for deletion (from backend):", id);  // Ensure the ID is correctly received
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.error("Invalid ID format:", id);
+        return res.status(400).json({ message: 'Invalid ID format' });
+    }
+
+    // Validate if the ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.error("Invalid ID format:", id); // Log invalid ID
+        return res.status(400).json({ message: 'Invalid ID format' });
+    }
 
     try {
-        const [result] = await connection.promise().query(sql, [req.params.id]);
-        if (result.affectedRows === 0) {
+        // Attempt to delete the ConsumerSale record by its ID
+        const result = await ConsumerSale.findByIdAndDelete(id);
+
+        if (!result) {
+            console.error("No record found with that ID to delete:", id); // Log if no record is found
             return res.status(404).json({ message: 'No record found with that ID to delete' });
         }
+
         await updateSalesSummary();  // Update the sales summary after deleting a sale
-        res.json({ message: 'Sale deleted successfully' });
+
+        console.log("Sale deleted successfully:", result); // Log the result of the deletion
+        res.json({ message: 'Sale deleted successfully', deletedRecord: result });
     } catch (err) {
-        console.error('Database query error:', err);
-        res.status(500).json({ error: err.message });
+        console.error('Error deleting sale:', err); // Log detailed error
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 
 app.delete("/relatives/:id", async (req, res) => {
-    const sql = "DELETE FROM relatives WHERE idRelatives = ?";
-
     try {
-        const [result] = await connection.promise().query(sql, [req.params.id]);
-        if (result.affectedRows === 0) {
-            // No record with that ID was found to delete
+        const result = await RelativeSale.findByIdAndDelete(req.params.id);
+
+        if (!result) {
             return res.status(404).json({ message: 'No record found with that ID to delete' });
         }
-        await updateSalesSummary();  // Update the sales summary after deleting a relative's sale
-        res.json({ message: 'Sale deleted successfully' });
+
+        await updateSalesSummary();
+
+        res.json({ message: 'Sale deleted successfully', deletedRecord: result });
     } catch (err) {
-        console.error('Database query error:', err);
-        res.status(500).json({ error: err.message });
+        console.error('Error deleting relative sale:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 app.delete("/expenditure/:id", async (req, res) => {
-    const sql = "DELETE FROM expenditure WHERE idexpenditure = ?";
-
     try {
-        const [result] = await connection.promise().query(sql, [req.params.id]);
-        if (result.affectedRows === 0) {
-            // No record with that ID was found to delete
+        // Delete the Expenditure record from MongoDB
+        const result = await Expenditure.findByIdAndDelete(req.params.id);
+
+        if (!result) {
             return res.status(404).json({ message: 'No record found with that ID to delete' });
         }
+
         await updateSalesSummary();  // Update the sales summary after deleting an expenditure
-        res.json({ message: 'Expense deleted successfully' });
+
+        res.json({ message: 'Expense deleted successfully', deletedRecord: result });
     } catch (err) {
-        console.error('Database query error:', err);
-        res.status(500).json({ error: err.message });
+        console.error('Error deleting expenditure:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 // Fetch all consumer khata data
-app.get('/consumerkhata', (req, res) => {
-    const sql = 'SELECT * FROM consumerkhata';
-    connection.query(sql, (error, results) => {
-        if (error) {
-            console.error("Error fetching consumerkhata data:", error);
-            res.status(500).setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type for error response
-            return res.json({ error: error.message });
-        }
-        res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type for successful response
-        res.json(results);
-    });
+app.get('/consumerkhata', async (req, res) => {
+    try {
+        // Fetch all ConsumerKhata records from MongoDB
+        const results = await ConsumerKhata.find();
+
+        res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
+        res.json(results);  // Return fetched data
+    } catch (error) {
+        console.error("Error fetching consumerkhata data:", error);
+        res.status(500).setHeader('Content-Type', 'application/json'); // Set Content-Type for error response
+        res.json({ error: error.message });
+    }
 });
 
-app.get('/employeekhata', (req, res) => {
-    const sql = 'SELECT * FROM employeekhata';
-    connection.query(sql, (error, results) => {
-        console.log(results); // Log the results to inspect the Date values
-        if (error) {
-            console.error("Error fetching employeekhata data:", error);
-            res.status(500).setHeader('Content-Type', 'application/json'); // Set Content-Type for error response
-            return res.json({ error: error.message });
-        }
-        res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type for successful response
-        res.json(results);
-    });
+app.get('/employeekhata', async (req, res) => {
+    try {
+        // Fetch all EmployeeKhata records from MongoDB
+        const results = await EmployeeKhata.find();
+
+        res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
+        res.json(results);  // Return fetched data
+    } catch (error) {
+        console.error("Error fetching employeekhata data:", error);
+        res.status(500).setHeader('Content-Type', 'application/json'); // Set Content-Type for error response
+        res.json({ error: error.message });
+    }
 });
 
 
-
-app.post('/consumerkhata', (req, res) => {
+// POST route to add a new consumer khata record using Mongoose
+app.post('/consumerkhata', async (req, res) => {
     const { date, name, baqaya } = req.body;
-    const sql = 'INSERT INTO consumerkhata (date, name, baqaya) VALUES (?, ?, ?)';
-    connection.query(sql, [date, name, baqaya], (error, result) => {
-        if (error) return res.status(500).json({ error: error.message });
-        res.status(201).json({ message: 'Data added successfully', id: result.insertId });
-    });
-});
 
-app.post('/employeekhata', (req, res) => {
-    const { date, name, baqaya } = req.body;
-    const sql = 'INSERT INTO employeekhata (Date, name, baqaya) VALUES (?, ?, ?)';
-    connection.query(sql, [date, name, baqaya], (error, result) => {
-        if (error) {
-            console.error('SQL Error:', error);
-            return res.status(500).json({ error: error.message });
-        }
-        res.status(201).json({ message: 'Data added successfully', id: result.insertId });
-    });
-});
-
-
-// Update existing consumer khata data
-app.put('/consumerkhata/:id', (req, res) => {
-    const { id } = req.params;
-    const { Date, name, baqaya } = req.body;
-
-   
-    // Simple validation (You can expand this based on your requirements)
-    if (!Date || !name || baqaya === undefined) {
-        return res.status(400).json({ message: 'Missing required fields' });
+    // Input validation
+    if (!date || !name || baqaya === undefined) {
+        return res.status(400).json({ message: 'Missing required fields: date, name, or baqaya' });
     }
 
-    const sql = 'UPDATE consumerkhata SET date = ?, name = ?, baqaya = ? WHERE idconsumerkhata = ?';
-    connection.query(sql, [Date, name, baqaya, id], (error, result) => {
-        if (error) {
-            console.error('SQL Error:', error);
-            return res.status(500).json({ error: error.message });
-        }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'No record found with that ID' });
-        }
-        res.json({ message: 'Data updated successfully' });
-    });
+    try {
+        // Create a new ConsumerKhata document
+        const newConsumerKhata = new ConsumerKhata({
+            date: new Date(date), // Convert date to a Date object
+            name,
+            baqaya: parseFloat(baqaya) // Ensure baqaya is stored as a number
+        });
+
+        // Save the document to MongoDB
+        const savedKhata = await newConsumerKhata.save();
+
+        res.status(201).json({ message: 'Data added successfully', id: savedKhata._id });
+    } catch (error) {
+        console.error("Error saving consumer khata:", error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
-app.put('/employeekhata/:id', (req, res) => {
+
+app.post('/employeekhata', async (req, res) => {
+    const { date, name, baqaya } = req.body;
+
+    // Input validation
+    if (!date || !name || baqaya === undefined || baqaya === null) {
+        return res.status(400).json({ error: "Missing required fields: date, name, or baqaya" });
+    }
+
+    try {
+        // Ensure the date is correctly formatted
+        const formattedDate = new Date(date);
+        if (isNaN(formattedDate.getTime())) {
+            return res.status(400).json({ error: "Invalid date format" });
+        }
+
+        // Create a new EmployeeKhata document
+        const newEmployeeKhata = new EmployeeKhata({
+            date: formattedDate,
+            name: name.trim(),  // Ensure name is trimmed
+            baqaya: parseInt(baqaya)  // Convert baqaya to an integer
+        });
+
+        // Save to MongoDB
+        const savedKhata = await newEmployeeKhata.save();
+
+        res.status(201).json({ message: 'Data added successfully', id: savedKhata._id });
+    } catch (error) {
+        console.error("Error saving employeekhata data:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+});
+
+
+
+
+app.put('/consumerkhata/:id', async (req, res) => {
+    const { id } = req.params;  // The consumer khata ID
+    const { date, name, baqaya } = req.body; // Removed consumerKhataId from the body
+
+    // Validate input
+    if (!date || !name || baqaya === undefined) {
+        return res.status(400).json({ message: 'Missing required fields: date, name, or baqaya' });
+    }
+
+    // Ensure ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid ID format' });
+    }
+
+    try {
+        // Update Consumer Khata document
+        const updatedKhata = await ConsumerKhata.findByIdAndUpdate(
+            id,
+            { date: new Date(date), name, baqaya: parseFloat(baqaya) },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedKhata) {
+            return res.status(404).json({ message: 'No ConsumerKhata record found with that ID' });
+        }
+
+        res.json({ message: 'Data updated successfully', updatedKhata });
+    } catch (error) {
+        console.error('Error updating ConsumerKhata:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+
+
+app.put('/employeekhata/:id', async (req, res) => {
     const { id } = req.params;
-    const { Date, name, baqaya } = req.body;
-   
-    if (!Date || typeof Date !== 'string' || !Date.trim() ||
+    const { date, name, baqaya } = req.body;
+
+    // Input validation
+    if (!date || typeof date !== 'string' || !date.trim() ||
         !name || typeof name !== 'string' || !name.trim() ||
         baqaya === undefined || isNaN(Number(baqaya)) || Number(baqaya) < 0) {
         return res.status(400).json({
-          message: 'Invalid or missing fields. Ensure date, name are non-empty strings and baqaya is a non-negative number.',
-          received: { Date, name, baqaya } // Echo what was received
+            message: 'Invalid or missing fields. Ensure date, name are non-empty strings and baqaya is a non-negative number.',
+            received: { date, name, baqaya }
         });
     }
 
-    const sql = 'UPDATE employeekhata SET date = ?, name = ?, baqaya = ? WHERE idEmployeekhata = ?';
-    connection.query(sql, [Date, name, baqaya, id], (error, result) => {
-        if (error) {
-            console.error('SQL Error:', error);
-            return res.status(500).json({ error: 'Database error occurred.' });
-        }
-        if (result.affectedRows === 0) {
+    try {
+        // Update the employeekhata by ID
+        const updatedKhata = await EmployeeKhata.findByIdAndUpdate(
+            id,
+            { date: new Date(date), name, baqaya }, // Make sure 'date' is lowercase
+            { new: true }
+        );
+
+        if (!updatedKhata) {
             return res.status(404).json({ message: 'No record found with the provided ID.' });
         }
-        res.json({ message: 'Employee data updated successfully.', id: id, updatedFields: { Date, name, baqaya } });
-    });
+
+        res.json({ message: 'Employee data updated successfully.', updatedFields: { date, name, baqaya } });
+    } catch (error) {
+        console.error('Error updating employee khata:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 
-// Server-side: Express route to handle POST request for new Wasooli transactions
 app.post('/wasooli', async (req, res) => {
-    const { date, Wasooli, consumerId } = req.body; // Assuming you send consumerId in the body
+    const { date, Wasooli: wasooliAmount, consumerId } = req.body;
 
-    // Input validation
-    if (!date || Wasooli === undefined || isNaN(parseInt(Wasooli)) || parseInt(Wasooli) < 0 || !consumerId) {
-        return res.status(400).send({ error: "Missing, invalid, or negative Wasooli amount, or missing consumer ID" });
+    if (!date || !wasooliAmount || !consumerId) {
+        return res.status(400).json({ error: "Missing required fields" });
     }
 
-    let connection;
     try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        const [consumerExists] = await connection.query('SELECT * FROM consumerkhata WHERE idconsumerkhata = ?', [consumerId]);
-        if (consumerExists.length === 0) {
-            await connection.rollback();
-            return res.status(404).send({ message: "Consumer not found" });
+        const consumer = await ConsumerKhata.findById(consumerId);
+        if (!consumer) {
+            return res.status(404).json({ error: "Consumer not found" });
         }
 
-        await connection.query('INSERT INTO wasooli (consumerkhata_id, date, Wasooli) VALUES (?, ?, ?)', [consumerId, date, Wasooli]);
-        await connection.query('UPDATE consumerkhata SET baqaya = baqaya - ? WHERE idconsumerkhata = ?', [Wasooli, consumerId]);
+        // Create a new Wasooli entry
+        const newWasooli = new Wasoolii({
+            consumerKhataId: consumerId,
+            date: new Date(date),
+            Wasooli: parseFloat(wasooliAmount),
+        });
+        await newWasooli.save();
 
-        await connection.commit();
-        res.status(201).send({ message: "Wasooli transaction added and baqaya updated successfully." });
+        // Update consumer's baqaya
+        consumer.baqaya -= parseFloat(wasooliAmount);
+        await consumer.save();
+
+        res.status(201).json({ message: "Wasooli transaction added successfully." });
     } catch (error) {
-        if (connection) {
-            await connection.rollback();
-        }
-        console.error("Error handling Wasooli transaction:", error);
-        res.status(500).send({ error: "Internal server error", details: error.message });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
+        console.error("Error creating Wasooli:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
     }
 });
+
+
+// Server-side: Express route to handle POST request for new Kharchay transactions
 app.post('/kharchay', async (req, res) => {
-    const { date, source , Wasooli, consumerId } = req.body; // Assuming you send consumerId in the body
+    const { date, source, Wasooli, consumerId } = req.body;
 
     // Input validation
     if (!date || Wasooli === undefined || isNaN(parseInt(Wasooli)) || parseInt(Wasooli) < 0 || !consumerId) {
         return res.status(400).send({ error: "Missing, invalid, or negative Wasooli amount, or missing consumer ID" });
     }
 
-    let connection;
     try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        const [consumerExists] = await connection.query('SELECT * FROM employeekhata WHERE idEmployeekhata = ?', [consumerId]);
-        if (consumerExists.length === 0) {
-            await connection.rollback();
-            return res.status(404).send({ message: "Consumer not found" });
+        // Check if employee exists in the EmployeeKhata model
+        const employee = await EmployeeKhata.findById(consumerId);
+        if (!employee) {
+            return res.status(404).send({ message: "Employee not found" });
         }
 
-        await connection.query('INSERT INTO kharchay (employeekhataId, date, source, Wasooli) VALUES (?, ?, ?, ?)', [consumerId, date,source, Wasooli]);
-        await connection.query('UPDATE employeekhata SET baqaya = baqaya - ? WHERE idEmployeekhata = ?', [Wasooli, consumerId]);
+        // Create a new Kharchay transaction
+        const newKharchay = new Kharchay({
+            employeeKhataId: consumerId,
+            date: new Date(date),
+            source,
+            Wasooli: parseFloat(Wasooli)
+        });
+        await newKharchay.save();
 
-        await connection.commit();
-        res.status(201).send({ message: "Wasooli transaction added and baqaya updated successfully." });
+        // Update the employee's baqaya
+        employee.baqaya -= parseFloat(Wasooli);
+        await employee.save();
+
+        res.status(201).send({ message: "Kharchay transaction added and baqaya updated successfully." });
     } catch (error) {
-        if (connection) {
-            await connection.rollback();
-        }
-        console.error("Error handling Wasooli transaction:", error);
+        console.error("Error handling Kharchay transaction:", error);
         res.status(500).send({ error: "Internal server error", details: error.message });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
     }
 });
+
 
 app.get('/wasooli/:id', async (req, res) => {
     const { id } = req.params;
+
     try {
-        const [results] = await pool.query('SELECT * FROM wasooli WHERE consumerkhata_id = ?', [id]);
-        res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
-        // Return an empty array instead of 404 if no transactions found
-        res.json(results.length > 0 ? results : []);
+        // Ensure that the provided ID is a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: 'Invalid Consumer ID format' });
+        }
+
+        // Fetch Wasooli transactions by consumerKhataId using Mongoose
+        const wasooliTransactions = await Wasoolii.find({ consumerKhataId: id });
+
+        // Explicitly set Content-Type and handle empty arrays or successful responses
+        res.setHeader('Content-Type', 'application/json');
+        return res.json(wasooliTransactions);  // Return the fetched transactions (can be empty)
     } catch (error) {
         console.error('Error fetching Wasooli data:', error);
-        res.status(500).setHeader('Content-Type', 'application/json'); // Set Content-Type for error response
-        res.send({ error: 'Internal server error', details: error.message });
+
+        // Respond with appropriate status and message, and set Content-Type for error response
+        return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 });
+
 
 app.get('/kharchay/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const [results] = await pool.query('SELECT * FROM kharchay WHERE employeekhataId = ?', [id]);
+        // Fetch Kharchay transactions by employeeKhataId using Mongoose
+        const kharchayTransactions = await Kharchay.find({ employeeKhataId: id });
+
         res.setHeader('Content-Type', 'application/json'); // Explicitly set Content-Type
-        // Return an empty array instead of 404 if no transactions found
-        res.json(results.length > 0 ? results : []);
+        // Return an empty array if no transactions are found
+        res.json(kharchayTransactions.length > 0 ? kharchayTransactions : []);
     } catch (error) {
         console.error('Error fetching Kharchay data:', error);
         res.status(500).setHeader('Content-Type', 'application/json'); // Set Content-Type for error response
@@ -543,197 +724,167 @@ app.get('/kharchay/:id', async (req, res) => {
 
 app.delete('/wasooli/:id', async (req, res) => {
     const { id } = req.params;
-    try {
-      // Get a connection from the pool
-      const connection = await pool.getConnection();
-  
-      // Start a transaction
-      await connection.beginTransaction();
-  
-      const transactionQuery = 'SELECT * FROM wasooli WHERE idwasooli = ?';
-      const [wasooliResults] = await connection.query(transactionQuery, [id]);
-      if (wasooliResults.length === 0) {
-        await connection.rollback(); // Rollback the transaction
-        connection.release(); // Don't forget to release the connection back to the pool
-        return res.status(404).send({ message: 'Wasooli transaction not found.' });
-      }
-  
-      const wasooliAmount = wasooliResults[0].Wasooli; // Ensure this matches your column name
-      const consumerId = wasooliResults[0].consumerkhata_id;
-  
-      const updateBaqayaQuery = 'UPDATE consumerkhata SET baqaya = baqaya + ? WHERE idconsumerkhata = ?';
-      await connection.query(updateBaqayaQuery, [wasooliAmount, consumerId]);
-  
-      const deleteQuery = 'DELETE FROM wasooli WHERE idwasooli = ?';
-      await connection.query(deleteQuery, [id]);
-  
-      await connection.commit(); // Commit the transaction
-  
-      connection.release(); // Release the connection back to the pool
-  
-      res.json({ message: 'Wasooli transaction deleted and Baqaya updated.', deletedAmount: wasooliAmount });
-    } catch (error) {
-      // If an error occurs, rollback the transaction and release the connection
-      if (connection) {
-        await connection.rollback();
-        connection.release();
-      }
-      console.error('Error during transaction:', error);
-      res.status(500).send({ error: 'Internal server error', details: error.message });
-    }
-  });
-  app.delete('/kharchay/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-      // Get a connection from the pool
-      const connection = await pool.getConnection();
-  
-      // Start a transaction
-      await connection.beginTransaction();
-  
-      const transactionQuery = 'SELECT * FROM kharchay WHERE idkharchay = ?';
-      const [wasooliResults] = await connection.query(transactionQuery, [id]);
-      if (wasooliResults.length === 0) {
-        await connection.rollback(); // Rollback the transaction
-        connection.release(); // Don't forget to release the connection back to the pool
-        return res.status(404).send({ message: 'Wasooli transaction not found.' });
-      }
-  
-      const wasooliAmount = wasooliResults[0].Wasooli; // Ensure this matches your column name
-      const consumerId = wasooliResults[0].employeekhataId;
-  
-      const updateBaqayaQuery = 'UPDATE employeekhata SET baqaya = baqaya + ? WHERE idEmployeekhata = ?';
-      await connection.query(updateBaqayaQuery, [wasooliAmount, consumerId]);
-  
-      const deleteQuery = 'DELETE FROM kharchay WHERE idkharchay = ?';
-      await connection.query(deleteQuery, [id]);
-  
-      await connection.commit(); // Commit the transaction
-  
-      connection.release(); // Release the connection back to the pool
-  
-      res.json({ message: 'Wasooli transaction deleted and Baqaya updated.', deletedAmount: wasooliAmount });
-    } catch (error) {
-      // If an error occurs, rollback the transaction and release the connection
-      if (connection) {
-        await connection.rollback();
-        connection.release();
-      }
-      console.error('Error during transaction:', error);
-      res.status(500).send({ error: 'Internal server error', details: error.message });
-    }
-  });
-  
 
-  app.put('/wasooli/:id', async (req, res) => {
-    const { id } = req.params;
-    const { date, Wasooli } = req.body; // Changed variable name from "wasooli" to "Wasooli" to match client-side
+    try {
+        // Find the Wasooli transaction by ID
+        const wasooli = await Wasoolii.findById(id);
+        if (!wasooli) {
+            return res.status(404).send({ message: 'Wasooli transaction not found.' });
+        }
 
-    
+        const wasooliAmount = wasooli.Wasooli;
+        const consumerId = wasooli.consumerKhataId; // Ensure this is the correct field
+
+        // Find the consumer and update baqaya
+        const consumer = await ConsumerKhata.findById(consumerId);
+        if (!consumer) {
+            return res.status(404).send({ message: 'Consumer Khata not found.' });
+        }
+
+        // Ensure baqaya is a number
+        if (typeof consumer.baqaya !== 'number') {
+            return res.status(400).send({ message: 'Consumer baqaya is not a valid number.' });
+        }
+        
+        // Update consumer's baqaya by adding back the deleted Wasooli amount
+        consumer.baqaya += wasooliAmount; // Add Wasooli amount back to baqaya
+        console.log(consumer.baqaya)
+        // Save the updated consumer
+        await consumer.save();
+
+        // Now delete the Wasooli transaction
+        await Wasoolii.findByIdAndDelete(id);
+
+        res.json({ message: 'Wasooli transaction deleted and Baqaya updated.', deletedAmount: wasooliAmount });
+    } catch (error) {
+        console.error('Error during transaction:', error);
+        res.status(500).send({ error: 'Internal server error', details: error.message });
+    }
+});
+
+
+app.delete('/kharchay/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Find the Kharchay transaction by ID
+        const kharchay = await Kharchay.findById(id);
+        if (!kharchay) {
+            return res.status(404).send({ message: 'Kharchay transaction not found.' });
+        }
+
+        const wasooliAmount = kharchay.Wasooli; // Get the Wasooli amount from Kharchay
+        const employeeId = kharchay.employeeKhataId; // Get the EmployeeKhata ID
+
+        // Find the employee khata record
+        const employeeKhata = await EmployeeKhata.findById(employeeId);
+        if (!employeeKhata) {
+            return res.status(404).send({ message: 'Employee Khata not found.' });
+        }
+
+        // Ensure baqaya is a number
+        if (typeof employeeKhata.baqaya !== 'number') {
+            return res.status(400).send({ message: 'Employee baqaya is not a valid number.' });
+        }
+
+        // Update employee's baqaya by adding back the deleted Wasooli amount
+        employeeKhata.baqaya += wasooliAmount; // Add back the Wasooli amount to baqaya
+
+        // Save the updated employee khata record
+        await employeeKhata.save();
+
+        // Now delete the Kharchay transaction
+        await Kharchay.findByIdAndDelete(id);
+
+        res.json({ message: 'Kharchay transaction deleted and Baqaya updated.', deletedAmount: wasooliAmount });
+    } catch (error) {
+        console.error('Error during transaction:', error);
+        res.status(500).send({ error: 'Internal server error', details: error.message });
+    }
+});
+
+
+app.put('/wasooli/:id', async (req, res) => {
+    const { id } = req.params;
+    const { date, Wasooli: wasooliAmount, consumerId } = req.body;
 
     // Validation for missing or invalid data
-    if (!date || isNaN(Wasooli) || Wasooli <= 0) { // Changed variable name from "wasooli" to "Wasooli"
+    if (!date || isNaN(wasooliAmount) || wasooliAmount <= 0 || !consumerId) {
         return res.status(400).json({ message: "Invalid or missing data" });
     }
 
-    let connection;
     try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        // Fetch the original transaction
-        const [originalTransactions] = await connection.query('SELECT * FROM wasooli WHERE idwasooli = ?', [id]);
-        if (originalTransactions.length === 0) {
-            await connection.rollback(); // No need to commit if we're throwing an error
-            connection.release();
+        const wasooliTransaction = await Wasoolii.findById(id);
+        if (!wasooliTransaction) {
             return res.status(404).json({ message: 'Original Wasooli transaction not found.' });
         }
-        const originalTransaction = originalTransactions[0];
 
-        // Validate and calculate new Wasooli amount
-        const newWasooliAmount = parseInt(Wasooli); // Changed variable name from "wasooli" to "Wasooli"
-        const originalWasooliAmount = parseInt(originalTransaction.Wasooli);
-        if (isNaN(newWasooliAmount) || isNaN(originalWasooliAmount)) {
-            throw new Error('Wasooli amounts must be valid numbers.');
+        const originalWasooliAmount = wasooliTransaction.Wasooli;
+        const consumer = await ConsumerKhata.findById(consumerId);
+        if (!consumer) {
+            return res.status(404).json({ message: 'Consumer not found.' });
         }
 
-        await connection.query('UPDATE consumerkhata SET baqaya = baqaya + ? WHERE idconsumerkhata = ?', [originalWasooliAmount, originalTransaction.consumerkhata_id]);
+        // Revert the old Wasooli amount to baqaya
+        await ConsumerKhata.findByIdAndUpdate(consumerId, { $inc: { baqaya: originalWasooliAmount } });
 
-        // Update the Wasooli transaction with the new amount
-        await connection.query('UPDATE wasooli SET date = ?, Wasooli = ? WHERE idwasooli = ?', [date, newWasooliAmount, id]);
+        // Update the Wasooli transaction
+        wasooliTransaction.date = new Date(date);
+        wasooliTransaction.Wasooli = parseFloat(wasooliAmount);
+        await wasooliTransaction.save();
 
-        // Then, subtract the new Wasooli amount from baqaya
-        await connection.query('UPDATE consumerkhata SET baqaya = baqaya - ? WHERE idconsumerkhata = ?', [newWasooliAmount, originalTransaction.consumerkhata_id]);
+        // Subtract the new Wasooli amount from baqaya
+        await ConsumerKhata.findByIdAndUpdate(consumerId, { $inc: { baqaya: -parseFloat(wasooliAmount) } });
 
-        await connection.commit(); // Correct place for commit
         res.json({ message: 'Wasooli transaction updated successfully.' });
     } catch (error) {
-        console.error('Error during transaction, rolling back:', error);
-        if (connection) {
-            await connection.rollback(); // Ensure rollback in case of error
-        }
+        console.error('Error updating Wasooli transaction:', error);
         res.status(500).json({ error: 'Internal server error', details: error.message });
-    } finally {
-        if (connection) {
-            await connection.release(); // Ensure connection is always released
-        }
     }
 });
 
 
 app.put('/kharchay/:id', async (req, res) => {
     const { id } = req.params;
-    const { date, source, Wasooli } = req.body; // Changed variable name from "wasooli" to "Wasooli" to match client-side
-
-
+    const { date, source, Wasooli: wasooliAmount } = req.body;
 
     // Validation for missing or invalid data
-    if (!date || isNaN(Wasooli) || Wasooli <= 0) { // Changed variable name from "wasooli" to "Wasooli"
+    if (!date || isNaN(wasooliAmount) || wasooliAmount <= 0) {
         return res.status(400).json({ message: "Invalid or missing data" });
     }
 
-    let connection;
     try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        // Fetch the original transaction
-        const [originalTransactions] = await connection.query('SELECT * FROM kharchay WHERE idkharchay = ?', [id]);
-        if (originalTransactions.length === 0) {
-            await connection.rollback(); // No need to commit if we're throwing an error
-            connection.release();
-            return res.status(404).json({ message: 'Original Wasooli transaction not found.' });
-        }
-        const originalTransaction = originalTransactions[0];
-
-        // Validate and calculate new Wasooli amount
-        const newWasooliAmount = parseInt(Wasooli); // Changed variable name from "wasooli" to "Wasooli"
-        const originalWasooliAmount = parseInt(originalTransaction.Wasooli);
-        if (isNaN(newWasooliAmount) || isNaN(originalWasooliAmount)) {
-            throw new Error('kharcha amounts must be valid numbers.');
+        // Find the original Kharchay transaction by ID
+        const kharchay = await Kharchay.findById(id);
+        if (!kharchay) {
+            return res.status(404).json({ message: 'Original Kharchay transaction not found.' });
         }
 
-        await connection.query('UPDATE employeekhata SET baqaya = baqaya + ? WHERE idEmployeekhata = ?', [originalWasooliAmount, originalTransaction.employeekhataId]);
+        const originalWasooliAmount = kharchay.Wasooli;
+        const employeeId = kharchay.employeeKhataId;  // Ensure this field matches your model
 
-        // Update the Wasooli transaction with the new amount
-        await connection.query('UPDATE kharchay SET date = ?, source = ?, Wasooli = ? WHERE idkharchay = ?', [date, source, newWasooliAmount, id]);
+        // Find the employee khata record
+        const employeeKhata = await EmployeeKhata.findById(employeeId);
+        if (!employeeKhata) {
+            return res.status(404).json({ message: 'Employee Khata not found.' });
+        }
 
-        // Then, subtract the new Wasooli amount from baqaya
-        await connection.query('UPDATE employeekhata SET baqaya = baqaya - ? WHERE idEmployeekhata = ?', [newWasooliAmount, originalTransaction.employeekhataId]);
+        // Update employee's baqaya by adding back the original Wasooli amount
+        await EmployeeKhata.findByIdAndUpdate(employeeId, { $inc: { baqaya: originalWasooliAmount } });
 
-           
-        await connection.commit(); // Correct place for commit
-        res.json({ message: 'Wasooli transaction updated successfully.' });
+        // Update the Kharchay transaction
+        kharchay.date = new Date(date);  // Ensure the date is stored correctly
+        kharchay.source = source;
+        kharchay.Wasooli = parseFloat(wasooliAmount);
+        await kharchay.save();
+
+        // Subtract the new Wasooli amount from baqaya
+        await EmployeeKhata.findByIdAndUpdate(employeeId, { $inc: { baqaya: -parseFloat(wasooliAmount) } });
+
+        res.json({ message: 'Kharchay transaction updated successfully.' });
     } catch (error) {
-        console.error('Error during transaction, rolling back:', error);
-        if (connection) {
-            await connection.rollback(); // Ensure rollback in case of error
-        }
+        console.error('Error updating Kharchay transaction:', error);
         res.status(500).json({ error: 'Internal server error', details: error.message });
-    } finally {
-        if (connection) {
-            await connection.release(); // Ensure connection is always released
-        }
     }
 });
 

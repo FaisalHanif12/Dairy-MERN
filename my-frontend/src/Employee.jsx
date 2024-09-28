@@ -166,7 +166,7 @@ const Employee = () => {
       console.log("Fetched consumers data:", consumersData);
 
       const updatedConsumersData = await Promise.all(consumersData.map(async (consumer) => {
-        const wasooliResponse = await fetch(`http://localhost:3001/kharchay/${consumer.idEmployeekhata}`);
+        const wasooliResponse = await fetch(`http://localhost:3001/kharchay/${consumer._id}`);
         if (!wasooliResponse.ok) {
           console.log(`Failed to fetch wasooli data for consumer ID: ${consumer.idEmployeekhata}`);
           return consumer; // Return the consumer without wasooli data if fetch fails
@@ -236,39 +236,41 @@ const Employee = () => {
 
   const handleSaveClick = async () => {
     const { date, consumerName, baqaya, idEmployeekhata } = consumerData;
-    console.log('Data before sending:', { date, consumerName, baqaya, idEmployeekhata }); // Debug log
 
-    if (!date.trim() || !consumerName.trim() || isNaN(parseInt(baqaya)) || parseInt(baqaya) < 0) {
-      let errors = {
-        ...(date.trim() ? null : { date: "Please enter a date" }),
-        ...(consumerName.trim() ? null : { consumerName: "Please enter consumer name" }),
-        ...(!isNaN(parseInt(baqaya)) && parseInt(baqaya) >= 0 ? null : { baqaya: "Please enter a valid non-negative baqaya amount" }),
-      };
-      setErrorMessages(errors);
-      return;
+    // Format the date as 'YYYY-MM-DD'
+    const formattedDate = new Date(date).toISOString().split('T')[0];
+
+    if (!formattedDate || !consumerName.trim() || isNaN(parseInt(baqaya)) || parseInt(baqaya) < 0) {
+        let errors = {
+            ...(formattedDate ? null : { date: "Please enter a valid date" }),
+            ...(consumerName.trim() ? null : { consumerName: "Please enter consumer name" }),
+            ...(!isNaN(parseInt(baqaya)) && parseInt(baqaya) >= 0 ? null : { baqaya: "Please enter a valid non-negative baqaya amount" }),
+        };
+        setErrorMessages(errors);
+        return;
     }
 
     const endpoint = idEmployeekhata ? `http://localhost:3001/employeekhata/${idEmployeekhata}` : 'http://localhost:3001/employeekhata';
     const method = idEmployeekhata ? 'PUT' : 'POST';
     const body = JSON.stringify({
-      Date: date,  // Ensure this key matches the server's expectation (case-sensitive)
-      name: consumerName,
-      baqaya: parseInt(baqaya),
+        date: formattedDate,  // Ensure lowercase 'date'
+        name: consumerName.trim(),  // Use lowercase 'name'
+        baqaya: parseInt(baqaya),  // Convert baqaya to integer and use lowercase
     });
 
     try {
-      const response = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: body,
-      });
+        const response = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+        });
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      console.log('Update successful', await response.json()); // Debug success
-      await fetchData();
-      resetForm();
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        console.log('Update successful', await response.json());
+        await fetchData();  // Refresh data
+        resetForm();  // Clear form fields
     } catch (error) {
-      console.error('Error during fetch:', error);
+        console.error('Error during fetch:', error);
     }
 };
 
@@ -289,20 +291,22 @@ const Employee = () => {
   };
 
   const handleUpdateClick = (id) => {
-    const consumerToUpdate = consumers.find(consumer => consumer.idEmployeekhata === id);
+    const consumerToUpdate = consumers.find(consumer => consumer._id === id); // Use _id from MongoDB
+
     if (consumerToUpdate) {
-      setConsumerData({
-        date: consumerToUpdate.Date || '',
-        consumerName: consumerToUpdate.name || '',
-        baqaya: consumerToUpdate.baqaya || '',
-        idEmployeekhata: consumerToUpdate.idEmployeekhata, // Store the id in the state
-      });
-      setIsUpdateMode(true);
-      setIsFormVisible(true);
+        setConsumerData({
+            date: consumerToUpdate.date ? new Date(consumerToUpdate.date).toISOString().split('T')[0] : '',
+            consumerName: consumerToUpdate.name || '',
+            baqaya: consumerToUpdate.baqaya || '',
+            idEmployeekhata: consumerToUpdate._id, // Use _id for MongoDB update
+        });
+        setIsUpdateMode(true);
+        setIsFormVisible(true);
     } else {
-      console.error("No consumer found with ID:", id);
+        console.error("No consumer found with ID:", id);
     }
-  };
+};
+
 
   const handleAddBaqayaClick = () => {
     setIsAddBaqayaVisible(true);
@@ -316,20 +320,21 @@ const Employee = () => {
 
   const handleSaveBaqayaClick = async () => {
     if (!baqayaToAdd) {
-      setBaqayaError('Please fill the Baqaya field');
-      return;
+        setBaqayaError('Please fill the Baqaya field');
+        return;
     }
+
     const newBaqayaAmount = parseInt(baqayaToAdd);
     if (isNaN(newBaqayaAmount)) {
-      setBaqayaError('Invalid Baqaya amount');
-      return;
+        setBaqayaError('Invalid Baqaya amount');
+        return;
     }
 
     // Find the consumer to update
-    const consumerToUpdate = consumers.find(consumer => consumer.idEmployeekhata === selectedConsumerId);
+    const consumerToUpdate = consumers.find(consumer => consumer._id === selectedConsumerId);
     if (!consumerToUpdate) {
-      console.error("Consumer not found");
-      return;
+        console.error("Consumer not found");
+        return;
     }
 
     // Ensure consumerToUpdate.baqaya is a number
@@ -340,93 +345,95 @@ const Employee = () => {
 
     // Corrected URL in the fetch request
     try {
-      const response = await fetch(`http://localhost:3001/employeekhata/${selectedConsumerId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          Date: consumerToUpdate.Date, // Make sure to include other fields required by your server
-          name: consumerToUpdate.name,
-          baqaya: updatedBaqaya,
-        }),
-      });
+        const response = await fetch(`http://localhost:3001/employeekhata/${selectedConsumerId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                date: consumerToUpdate.date,  // Ensure date is included and correctly formatted
+                name: consumerToUpdate.name,
+                baqaya: updatedBaqaya,  // Updated baqaya
+            }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      // Update local state and UI
-      const updatedConsumers = consumers.map(consumer =>
-        consumer.idEmployeekhata === selectedConsumerId ? {
-          ...consumer,
-          baqaya: updatedBaqaya.toString(),
-        } : consumer
-      );
+        // Update local state and UI
+        const updatedConsumers = consumers.map(consumer =>
+            consumer._id === selectedConsumerId
+                ? { ...consumer, baqaya: updatedBaqaya.toString() }
+                : consumer
+        );
 
-      setConsumers(updatedConsumers);
-      setIsDataSaved(true);
-      setBaqayaToAdd('');
-      setIsAddBaqayaVisible(false);
-      setBaqayaError('');
-      fetchData(); // Refresh data
+        setConsumers(updatedConsumers);
+        setIsDataSaved(true);
+        setBaqayaToAdd('');
+        setIsAddBaqayaVisible(false);
+        setBaqayaError('');
+        fetchData();  // Refresh data after the update
     } catch (error) {
-      console.error('Error updating baqaya:', error);
-      setBaqayaError('Failed to update baqaya');
+        console.error('Error updating baqaya:', error);
+        setBaqayaError('Failed to update baqaya');
     }
-  };
+};
 
-  const handleUpdateWasooliClick = (consumerId, transactionId) => {
-    if (!consumerId || !transactionId) {
-      console.error('Missing consumer ID or transaction ID');
+
+const handleUpdateWasooliClick = (consumerId, transactionId) => {
+  if (!consumerId || !transactionId) {
+      console.error("Missing consumer ID or transaction ID");
       return;
-    }
+  }
 
-    const consumer = consumers.find(consumer => consumer.idEmployeekhata === consumerId);
-    if (!consumer) {
-      console.error('Consumer not found for ID:', consumerId);
+  const consumer = consumers.find((consumer) => consumer._id === consumerId);
+  if (!consumer) {
+      console.error("Consumer not found for ID:", consumerId);
       setIsAlertVisible(true);
       setAlertMessage("Error: Consumer not found");
       return;
-    }
-    console.log("Consumer found:", consumer.name);
+  }
 
-    if (!consumer.wasooliTransactions || consumer.wasooliTransactions.length === 0) {
-      console.error('No transactions found for consumer:', consumer.name);
+  const selectedWasooliCard = consumer.wasooliTransactions.find(
+      (txn) => txn._id.toString() === transactionId.toString()
+  );
+  if (!selectedWasooliCard) {
+      console.error("Wasooli transaction not found for ID:", transactionId);
       return;
-    }
+  }
 
-    console.log("Consumer's Wasooli Transactions:", consumer.wasooliTransactions);
+  // Ensure the date is properly formatted to 'YYYY-MM-DD'
+  const formattedDate = new Date(selectedWasooliCard.date).toISOString().slice(0, 10);
 
-    const selectedWasooliCard = consumer.wasooliTransactions.find(txn => txn.idkharchay.toString() === transactionId.toString());
-    if (!selectedWasooliCard) {
-      console.error('Wasooli transaction not found for ID:', transactionId, "in consumer:", consumer.name);
-      return;
-    }
-    console.log("Selected Wasooli Card:", selectedWasooliCard);
+  // Update state with Wasooli data and store transaction ID for update
+  setWasooliData({
+      date: formattedDate, // Ensure date is in 'YYYY-MM-DD' format
+      source: selectedWasooliCard.source || "",  // Fallback if undefined
+      wasooli: selectedWasooliCard.Wasooli ? selectedWasooliCard.Wasooli.toString() : "",  // Fallback if undefined
+  });
 
-    // Update the form data and editing transaction state asynchronously
-    setWasooliData({
-      date: selectedWasooliCard.date,
-      source: selectedWasooliCard.source,
-      wasooli: selectedWasooliCard.Wasooli.toString(),
-    });
-
-    setEditingTransaction({
+  setEditingTransaction({
       consumerId: consumerId,
       transactionId: transactionId,
-    });
+  });
 
-    setIsWasooliVisible(true);
-  };
+  setSelectedConsumerId(consumerId);
+  setCurrentManaging(consumerId);
+  setIsWasooliVisible(true);
+};
 
 
 
   const handleManageClick = (consumerId) => {
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
+    
     setSelectedConsumerId(consumerId);
     setIsWasooliVisible(true);
     setCurrentManaging(consumerId);
-    // Reset Wasooli form data
-    setWasooliData({ date: '', source: '', Wasooli: '' });
-  };
+    
+    // Reset Wasooli form data and prefill the date field with today's date
+    setWasooliData({ date: today, source: '', Wasooli: '' });
+};
+
 
   const handleWasooliInputChange = (e) => {
     const { name, value } = e.target;
@@ -605,25 +612,25 @@ const Employee = () => {
     }, {});
 
     return Object.entries(transactionsByMonth).map(([monthYear, transactions]) => {
-      const isButtonVisible = monthYearButtonsVisibility[consumer.idEmployeekhata];
-      const isDataVisible = monthVisibility[consumer.idEmployeekhata]?.[monthYear] ?? false;
+      const isButtonVisible = monthYearButtonsVisibility[consumer._id];
+      const isDataVisible = monthVisibility[consumer._id]?.[monthYear] ?? false;
 
       return (
         <div key={monthYear}>
           {isButtonVisible && (
-            <button className="toggle-visibility-button" onClick={() => toggleMonthVisibility(consumer.idEmployeekhata, monthYear)}>
+            <button className="toggle-visibility-button" onClick={() => toggleMonthVisibility(consumer._id, monthYear)}>
               {isDataVisible ? translations[language].Hide : translations[language].Show} {monthYear}
             </button>
           )}
           {isDataVisible && transactions.map((transaction, index) => (
             <div className="wasooli-card-horizontal" key={index}>
-              <span> {translations[language].date}  {transaction.date}</span>
+              <span> {translations[language].date} : {new Date(transaction.date).toLocaleDateString()}</span>
               <span>  {translations[language].sourceOfKharcha} {transaction.source}</span>
               <span>   {translations[language].kharcha}  {transaction.Wasooli}</span>
-              <button className="updatee-button" onClick={() => handleUpdateWasooliClick(consumer.idEmployeekhata, transaction.idkharchay)}>
+              <button className="updatee-button" onClick={() => handleUpdateWasooliClick(consumer._id, transaction._id)}>
               {translations[language].update}
               </button>
-              <button className="deletee-button" onClick={() => handleDeleteWasooliClick(consumer.idEmployeekhata, transaction.idkharchay)}>
+              <button className="deletee-button" onClick={() => handleDeleteWasooliClick(consumer._id, transaction._id)}>
               {translations[language].delete}
               </button>
             </div>
@@ -649,34 +656,39 @@ const Employee = () => {
       />
       {
         consumers.map((consumer) => (
-          <div className="consumer-card" key={consumer.idEmployeekhata}>
+          <div className="consumer-card" key={consumer._id}>
             <h2 className="consumer-name">{consumer.name} {translations[language].Khata}</h2>
-            <p>{translations[language].date} : {consumer.Date ? consumer.Date : 'No date available'}</p>
+            <p>
+            {translations[language].date} :{" "}
+            {consumer.date
+              ? new Date(consumer.date).toLocaleDateString()
+              : "N/A"}
+          </p>
 
             <p>{translations[language].consumerName} : {consumer.name}</p>
             <p> {translations[language].baqaya} : {consumer.baqaya}</p>
             <div className="action-buttons">
-              <button className="manage-buttonn" onClick={() => handleManageClick(consumer.idEmployeekhata)}>
+              <button className="manage-buttonn" onClick={() => handleManageClick(consumer._id)}>
               {translations[language].manage}
               </button>
               <button className="add-baqaya-buttonn" onClick={() => {
                 setIsAddBaqayaVisible(true);
-                setSelectedConsumerId(consumer.idEmployeekhata); // Ensure this is set when opening the Baqaya add form
+                setSelectedConsumerId(consumer._id); // Ensure this is set when opening the Baqaya add form
               }}>
                {translations[language].addBaqaya}
               </button>
-              <button className="update-buttonn" onClick={() => handleUpdateClick(consumer.idEmployeekhata)}>
+              <button className="update-buttonn" onClick={() => handleUpdateClick(consumer._id)}>
               {translations[language].update}
               </button>
 
-              <button className="global-toggle-buttonnn" onClick={() => toggleMonthYearButtonsVisibility(consumer.idEmployeekhata)}>
-                {monthYearButtonsVisibility[consumer.idEmployeekhata] ? translations[language].hideAll : translations[language].showAll}
+              <button className="global-toggle-buttonnn" onClick={() => toggleMonthYearButtonsVisibility(consumer._id)}>
+                {monthYearButtonsVisibility[consumer._id] ? translations[language].hideAll : translations[language].showAll}
               </button>
 
             </div>
             {renderWasooliTransactions(consumer)}
 
-            {currentManaging === consumer.idEmployeekhata && isWasooliVisible && (
+            {currentManaging === consumer._id && isWasooliVisible && (
               <div className="form-container wasooli-card">
                 <h2> {translations[language].kharcha}</h2>
                 <button className="close-button" onClick={() => setIsWasooliVisible(false)}>
@@ -717,7 +729,7 @@ const Employee = () => {
               </div>
             )}
 
-            {selectedConsumerId === consumer.idEmployeekhata && isAddBaqayaVisible && (
+                     {selectedConsumerId === consumer._id && isAddBaqayaVisible && (
               <div className="add-baqaya-card">
                 <button className="close-button" onClick={() => setIsAddBaqayaVisible(false)} >
                   &#10005;

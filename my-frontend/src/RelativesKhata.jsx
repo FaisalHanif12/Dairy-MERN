@@ -169,6 +169,7 @@ const RelativesKhata = () => {
 
     return acc;
   }, {});
+  
   const handleSave = async (e) => {
     e.preventDefault();
 
@@ -182,46 +183,44 @@ const RelativesKhata = () => {
     try {
       let response;
       if (editIndex >= 0) {
-        // Assuming your expense objects use 'idConsumersSale' as the key for ID
-        const expenseId = expenses[editIndex].idRelatives; // Adjust this line accordingly
+        // Use the '_id' property of MongoDB instead of 'idRelatives'
+        const expenseId = expenses[editIndex]._id; // Adjust to MongoDB _id field
         response = await fetch(`http://localhost:3001/relatives/${expenseId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
         });
 
-        const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
-        const alertMessage = `${translations[language].record} `;
-  
-        // Replace alert(alertMessage); with:
+        // Properly handle the update message with monthYear and updated notice
+       
+        const alertMessage = `${translations[language].record}`;
+
         setModalMessage(alertMessage);
         setShowModal(true);
 
       } else {
-        // Adding a new expense
+        // Adding a new expense logic
         response = await fetch('http://localhost:3001/relatives', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
         });
 
-      const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
-      const alertMessage = `${quantity} ${translations[language].KiloMilk} ${translations[language].added}`;
+        // Message for a newly added record
+        const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
+        const alertMessage = `${quantity} ${translations[language].KiloMilk} ${translations[language].added}`;
 
-      // Replace alert(alertMessage); with:
-      setModalMessage(alertMessage);
-      setShowModal(true);
-
+        setModalMessage(alertMessage);
+        setShowModal(true);
       }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      await fetchData(); // Refresh data
+      await fetchData(); // Refresh data after PUT or POST operation
 
-      // Reset form fields and editIndex
-      //setDate('');
+      // Reset form fields and editIndex after successful save
       setSource('');
       setQuantity('');
       setAmount('');
@@ -230,7 +229,7 @@ const RelativesKhata = () => {
     } catch (error) {
       console.error('There was an error saving the sale:', error);
     }
-  };
+};
 
   const handleDelete = (index) => {
     setShowAlert(true);
@@ -240,9 +239,11 @@ const RelativesKhata = () => {
   const handleAlertConfirm = async (isConfirmed) => {
     if (isConfirmed && deleteIndex != null) {
       const expense = expenses[deleteIndex];
-      if (expense && expense.idRelatives) { // Make sure the ID field matches your data structure
+      
+      // Check if 'idRelatives' exists in the 'expense' object or log the 'expense' object to verify the field names
+      if (expense && expense._id) { // Assuming the ID field in MongoDB is '_id'
         try {
-          const response = await fetch(`http://localhost:3001/relatives/${expense.idRelatives}`, {
+          const response = await fetch(`http://localhost:3001/relatives/${expense._id}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
@@ -263,14 +264,16 @@ const RelativesKhata = () => {
           console.error('There was an error deleting the sale:', error);
         }
       } else {
-        console.error('Attempted to delete an expense without a valid ID');
+        // Log the expense object to check its structure
+        console.error('Attempted to delete an expense without a valid ID', expense);
       }
     }
 
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
-  };
+};
+
 
   const getMonthlyExpenses = () => {
     const monthlyExpenses = expenses.reduce((acc, expense) => {
@@ -309,7 +312,7 @@ const RelativesKhata = () => {
 
   const handleUpdate = (index) => {
     const expense = expenses[index];
-    setDate(expense.Date);
+    setDate(new Date(expense.Date).toISOString().split('T')[0]);
     setSource(expense.Rname); // Corrected: ensure this matches your data structure
     setQuantity(expense.Quantity.toString());
     setAmount(expense.RUnitPrice.toString());
@@ -453,7 +456,7 @@ const RelativesKhata = () => {
                     const total = expense.quantity * expense.amount;
                     return (
                       <div key={index} className="expense-card">
-                        <div>{translations[language].date} : {expense.Date}</div>
+                        <div>{translations[language].date} : {new Date(expense.Date).toLocaleDateString()} </div>
                         <div>{translations[language].name} : {expense.Rname}</div>
                         <div>{translations[language].quantity} : {expense.Quantity}</div>
                         <div>{translations[language].pricePerKilo} : {expense.RUnitPrice}</div>

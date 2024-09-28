@@ -168,65 +168,66 @@ const Expenditure = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-
+  
+    // Creating the payload object with the necessary fields
     const expensePayload = {
       Date: date,
       source: source,
-
       amount: parseFloat(amount),
     };
-
+  
     try {
       let response;
       if (editIndex >= 0) {
-        // Assuming your expense objects use 'idConsumersSale' as the key for ID
-        const expenseId = expenses[editIndex].idexpenditure; // Adjust this line accordingly
+        // Assuming your expense objects use MongoDB's _id as the key for ID
+        const expenseId = expenses[editIndex]._id; // Use the _id field for MongoDB documents
         response = await fetch(`http://localhost:3001/expenditure/${expenseId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
         });
-
+  
         const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
-        const alertMessage = `${translations[language].record} `;
-
-        // Replace alert(alertMessage); with:
+        const alertMessage = `${translations[language].record} ${monthYear} ${translations[language].updated}`;
+  
+        // Displaying the modal with the message
         setModalMessage(alertMessage);
         setShowModal(true);
-
-
+  
       } else {
         // Adding a new expense
         response = await fetch('http://localhost:3001/expenditure', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
-          
         });
-
+  
         const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
         const alertMessage = `${amount} ${translations[language].expens} ${translations[language].added} `;
-        // Replace alert(alertMessage); with:
+  
+        // Displaying the modal with the message
         setModalMessage(alertMessage);
         setShowModal(true);
-
       }
-
+  
+      // Checking if the request was successful
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      await fetchData(); // Refresh data
-
+  
+      // Refresh the data after the operation
+      await fetchData(); 
+  
+      // Reset the form fields and the editIndex
       setSource('');
       setAmount('');
       setEditIndex(-1);
-
-    
+  
     } catch (error) {
-      console.error('There was an error saving the sale:', error);
+      console.error('There was an error saving the expense:', error);
     }
   };
+  
   const toggleGlobalVisibility = () => {
     setGlobalVisibility(prevState => {
       const newState = !prevState;
@@ -253,38 +254,42 @@ const Expenditure = () => {
   const handleAlertConfirm = async (isConfirmed) => {
     if (isConfirmed && deleteIndex != null) {
       const expense = expenses[deleteIndex];
-      if (expense && expense.idexpenditure) { // Make sure the ID field matches your data structure
+      
+      // Ensure the correct field is used for the ID (assuming MongoDB's default _id field)
+      if (expense && expense._id) {
         try {
-          const response = await fetch(`http://localhost:3001/expenditure/${expense.idexpenditure}`, {
+          console.log("Attempting to delete expense with ID:", expense._id); // Debugging log
+          
+          const response = await fetch(`http://localhost:3001/expenditure/${expense._id}`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
             },
           });
-
+  
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-
+  
           const result = await response.json();
           console.log(result.message); // Log the message from the backend
-
+  
           // Refresh the expenses list after deleting an expense
           await fetchData();
-
+  
         } catch (error) {
           console.error('There was an error deleting the sale:', error);
         }
       } else {
-        console.error('Attempted to delete an expense without a valid ID');
+        console.error('Attempted to delete an expense without a valid ID:', expense ? expense : 'Expense not found');
       }
     }
-
+  
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
   };
-
+  
   const getMonthlyExpenses = () => {
     return expenses.reduce((acc, expense) => {
       const expenseDate = new Date(expense.Date); // Adjust according to your actual data structure
@@ -307,7 +312,7 @@ const Expenditure = () => {
   const handleUpdate = (index) => {
     const expense = expenses[index];
     // Correctly assign values from the expense object
-    setDate(expense.Date); // Ensure the property names match your data structure
+    setDate(new Date(expense.Date).toISOString().split('T')[0]); // Ensure the property names match your data structure
     setSource(expense.source); // This should be the source, not the total or any other field
     setAmount(expense.amount.toString());
     setEditIndex(index);
@@ -420,7 +425,7 @@ const Expenditure = () => {
                     const actualIndex = expenses.findIndex(e => e === expense);
                     return (
                       <div key={index} className="expense-card">
-                        <div>{translations[language].date} : {expense.Date}</div>
+                        <div>{translations[language].date} :  {new Date(expense.Date).toLocaleDateString()}</div>
                         <div>{translations[language].source} : {expense.source}</div>
                         <div>{translations[language].amount} : {expense.amount}</div>
                         <button onClick={() => handleDelete(actualIndex)} className="delete-button1">{translations[language].delete} </button>

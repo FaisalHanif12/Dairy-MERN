@@ -7,7 +7,6 @@
 
 # testing
 /coverage
-/.env
 
 # production
 /build
@@ -18,11 +17,15 @@
 .env.development.local
 .env.test.local
 .env.production.local
-.env
 
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# ignore .env in my-backend
+# Ignore node_modules for both frontend and backend
+/my-frontend/node_modules/
+/my-backend/node_modules/
+
+# Ignore .env files in backend
 my-backend/.env
