@@ -102,6 +102,19 @@ app.get('/sales_summary', async (req, res) => {
     }
 });
 
+app.get('/unique-names', async (req, res) => {
+    try {
+        // Fetch distinct consumer names from MongoDB
+        const uniqueNames = await ConsumerSale.distinct('Name');
+
+        // Respond with the list of unique names
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniqueNames);
+    } catch (err) {
+        console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 

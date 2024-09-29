@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import './ConsumersDales.css';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import "./ConsumersDales.css";
+import { useNavigate } from "react-router-dom";
 
 const ConsumersDales = () => {
   const navigate = useNavigate();
-  const [source, setSource] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [amount, setAmount] = useState('');
+  const [source, setSource] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [amount, setAmount] = useState("");
   const [expenses, setExpenses] = useState([]);
   const [editIndex, setEditIndex] = useState(-1);
   const [showAlert, setShowAlert] = useState(false);
@@ -14,19 +14,51 @@ const ConsumersDales = () => {
   const [groupVisibility, setGroupVisibility] = useState({});
   const [globalVisibility, setGlobalVisibility] = useState(false);
   const [showMonthlySales, setShowMonthlySales] = useState(false);
-  const [language, setLanguage] = useState('English'); // Default to English
-  // Define fetchData outside of useEffect
-  const [uniqueNames, setUniqueNames] = useState(() => {
-    // Load saved names from localStorage when the component mounts
-    const savedNames = JSON.parse(localStorage.getItem('uniqueNames'));
-    return savedNames || [];
-  });
+  const [language, setLanguage] = useState("English"); // Default to English
   const [showModal, setShowModal] = useState(false); // You already have this for controlling the visibility of the modal
-  const [modalMessage, setModalMessage] = useState(''); // Add this line to manage the modal message
+  const [modalMessage, setModalMessage] = useState(""); // Add this line to manage the modal message
+  const [uniqueNames, setUniqueNames] = useState([]);
+  const [filteredNames, setFilteredNames] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
+  // Fetch unique names from the backend when the component mounts
   useEffect(() => {
-    localStorage.setItem('uniqueNames', JSON.stringify(uniqueNames));
-  }, [uniqueNames]);
+    fetchUniqueNames();
+  }, []);
+
+  // Fetch unique names from the backend API
+  const fetchUniqueNames = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/unique-names");
+      const data = await response.json();
+      setUniqueNames(data);
+    } catch (error) {
+      console.error("Error fetching unique names:", error);
+    }
+  };
+
+  // Handle input change for the consumer name field
+  const handleSourceChange = (e) => {
+    const value = e.target.value;
+    setSource(value);
+
+    // Filter names based on input value
+    if (value.trim()) {
+        const filtered = uniqueNames.filter((name) => name.toLowerCase().includes(value.toLowerCase()));
+        setFilteredNames(filtered);
+        setShowDropdown(filtered.length > 0); // Show the dropdown if filtered names exist
+    } else {
+        setFilteredNames([]); // Clear filtered names if input is empty
+        setShowDropdown(false); // Hide the dropdown if input is empty
+    }
+};
+
+
+  // Handle name selection from the dropdown
+  const handleSelectName = (name) => {
+    setSource(name); // Set selected name in input field
+    setShowDropdown(false); // Hide dropdown after selection
+  };
 
   const translations = {
     English: {
@@ -90,7 +122,7 @@ const ConsumersDales = () => {
       added: " شامل ہوگیا ہے",
       In: "میں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
-    }
+    },
   };
 
   const monthTranslations = {
@@ -110,43 +142,44 @@ const ConsumersDales = () => {
 
   const fetchData = async () => {
     try {
-        const response = await fetch('http://localhost:3001/consumerssale', {
-            headers: {
-                'Accept': 'application/json',
-            },
-        });
+      const response = await fetch("http://localhost:3001/consumerssale", {
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Expected JSON response, but received unexpected content type');
-        }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(
+          "Expected JSON response, but received unexpected content type"
+        );
+      }
 
-        const data = await response.json();
+      const data = await response.json();
 
-        // Handle empty data
-        if (data.length === 0) {
-            console.log("No data available"); // Log a message or handle it in the UI
-            setExpenses([]);  // Set an empty state for expenses
-            return;
-        }
+      // Handle empty data
+      if (data.length === 0) {
+        console.log("No data available"); // Log a message or handle it in the UI
+        setExpenses([]); // Set an empty state for expenses
+        return;
+      }
 
-        const processedData = data.map(expense => ({
-            ...expense,
-            Quantity: parseFloat(expense.Quantity),
-            UnitPrice: parseFloat(expense.UnitPrice),
-            Total: expense.Total ? parseFloat(expense.Total).toFixed(2) : undefined,
-        }));
+      const processedData = data.map((expense) => ({
+        ...expense,
+        Quantity: parseFloat(expense.Quantity),
+        UnitPrice: parseFloat(expense.UnitPrice),
+        Total: expense.Total ? parseFloat(expense.Total).toFixed(2) : undefined,
+      }));
 
-        setExpenses(processedData);
+      setExpenses(processedData);
     } catch (error) {
-        console.error('There was an error fetching the sales data:', error);
+      console.error("There was an error fetching the sales data:", error);
     }
-};
-
+  };
 
   useEffect(() => {
     // Now you can call fetchData inside useEffect
@@ -155,31 +188,32 @@ const ConsumersDales = () => {
 
   // ... rest of your component
 
-
   const [date, setDate] = useState(() => {
     const today = new Date();
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    const day = String(today.getDate()).padStart(2, "0");
+    const month = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
     const year = today.getFullYear();
 
     return `${year}-${month}-${day}`;
   });
   const toggleMonthlySalesVisibility = () => {
-    setShowMonthlySales(prevShow => !prevShow); // Toggle the visibility state
+    setShowMonthlySales((prevShow) => !prevShow); // Toggle the visibility state
   };
 
   const toggleGroupVisibility = (monthYear) => {
-    setGlobalVisibility(prevGlobalState => {
+    setGlobalVisibility((prevGlobalState) => {
       if (!prevGlobalState) {
         // If global visibility is off, ensure it stays off and don't toggle individual groups
-        console.warn("Global visibility is off. Can't toggle individual group visibility.");
+        console.warn(
+          "Global visibility is off. Can't toggle individual group visibility."
+        );
         return prevGlobalState;
       }
 
       // If global visibility is on, toggle the specific month/year group
-      setGroupVisibility(prevGroupVisibility => ({
+      setGroupVisibility((prevGroupVisibility) => ({
         ...prevGroupVisibility,
-        [monthYear]: !prevGroupVisibility[monthYear]
+        [monthYear]: !prevGroupVisibility[monthYear],
       }));
 
       return prevGlobalState; // Return the unchanged global state
@@ -205,11 +239,14 @@ const ConsumersDales = () => {
     const date = new Date(expenseDate);
 
     if (isNaN(date.getTime())) {
-      console.error('Invalid date for expense:', expense);
+      console.error("Invalid date for expense:", expense);
       return acc; // Skip this expense if the date is invalid
     }
 
-    const monthYear = `${date.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
+    const monthYear = `${date.toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    })}`;
     if (!acc[monthYear]) {
       acc[monthYear] = [];
     }
@@ -221,80 +258,76 @@ const ConsumersDales = () => {
   const handleSave = async (e) => {
     e.preventDefault();
 
-    if (!uniqueNames.includes(source)) {
-      setUniqueNames((prev) => [...prev, source]);
-    }
-  
     const expensePayload = {
       Date: date,
       Name: source,
       Quantity: parseFloat(quantity),
       UnitPrice: parseFloat(amount),
     };
-  
+
     try {
       let response;
-      
+
       if (editIndex >= 0) {
         // Assuming your expense objects use 'idConsumersSale' as the key for ID
-        const expenseId = expenses[editIndex]?._id || expenses[editIndex]?.idConsumersSale; // Ensure it checks both _id and idConsumersSale
-  
+        const expenseId =
+          expenses[editIndex]?._id || expenses[editIndex]?.idConsumersSale; // Ensure it checks both _id and idConsumersSale
+
         if (!expenseId) {
-          throw new Error('No valid ID found for the selected sale.');
+          throw new Error("No valid ID found for the selected sale.");
         }
-  
+
         // PUT request to update an existing expense
-        response = await fetch(`http://localhost:3001/consumerssale/${expenseId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(expensePayload),
-        });
-  
-               
+        response = await fetch(
+          `http://localhost:3001/consumerssale/${expenseId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(expensePayload),
+          }
+        );
+
         const alertMessage = `${translations[language].record}`;
-        
+
         // Show modal with the alert message
         setModalMessage(alertMessage);
         setShowModal(true);
-        
-        
-      
-  
       } else {
         // POST request to add a new expense (remains unchanged)
-        response = await fetch('http://localhost:3001/consumerssale', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        response = await fetch("http://localhost:3001/consumerssale", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
         });
-  
-        const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        const monthYear = new Date(date).toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        });
         const alertMessage = `${quantity} ${translations[language].KiloMilk} ${translations[language].added}`;
-        
+
         // Show modal with added message
         setModalMessage(alertMessage);
         setShowModal(true);
       }
-  
+
       // Check for response errors
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       // Fetch updated data after saving
       await fetchData();
-  
+
       // Reset form fields and editIndex
-      setSource('');
-      setQuantity('');
-      setAmount('');
+      setSource("");
+      setQuantity("");
+      setAmount("");
       setEditIndex(-1);
-  
     } catch (error) {
-      console.error('There was an error saving the sale:', error);
+      console.error("There was an error saving the sale:", error);
     }
   };
-  
 
   // This function is called when the delete button is clicked.
   // It sets up the alert and marks which item should be deleted if confirmed.
@@ -307,14 +340,18 @@ const ConsumersDales = () => {
   const handleAlertConfirm = async (isConfirmed) => {
     if (isConfirmed && deleteIndex != null) {
       const expense = expenses[deleteIndex];
-      if (expense && expense._id) { // Use _id as it's the correct field for MongoDB documents
+      if (expense && expense._id) {
+        // Use _id as it's the correct field for MongoDB documents
         try {
-          const response = await fetch(`http://localhost:3001/consumerssale/${expense._id}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          const response = await fetch(
+            `http://localhost:3001/consumerssale/${expense._id}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -325,33 +362,37 @@ const ConsumersDales = () => {
 
           // Refresh the expenses list after deleting an expense
           await fetchData();
-
         } catch (error) {
-          console.error('There was an error deleting the sale:', error);
+          console.error("There was an error deleting the sale:", error);
         }
       } else {
-        console.error('Attempted to delete an expense without a valid ID');
+        console.error("Attempted to delete an expense without a valid ID");
       }
     }
 
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
-};
+  };
 
   const getMonthlyExpenses = () => {
     const monthlyExpenses = expenses.reduce((acc, expense) => {
       // Check if the date is valid
       const date = new Date(expense.Date);
       if (isNaN(date.getTime())) {
-        console.error('Invalid date for expense:', expense);
+        console.error("Invalid date for expense:", expense);
         return acc; // Skip this expense if the date is invalid
       }
 
-      const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+      const monthYear = `${date.toLocaleString("default", {
+        month: "long",
+      })} ${date.getFullYear()}`;
       const expenseQuantity = parseFloat(expense.Quantity);
       const expenseUnitPrice = parseFloat(expense.UnitPrice);
-      const monthlyTotal = !isNaN(expenseQuantity) && !isNaN(expenseUnitPrice) ? expenseQuantity * expenseUnitPrice : 0;
+      const monthlyTotal =
+        !isNaN(expenseQuantity) && !isNaN(expenseUnitPrice)
+          ? expenseQuantity * expenseUnitPrice
+          : 0;
 
       if (!acc[monthYear]) {
         acc[monthYear] = 0;
@@ -365,12 +406,14 @@ const ConsumersDales = () => {
     return monthlyExpenses;
   };
 
-
   const getOverallExpenses = () => {
     return expenses.reduce((acc, expense) => {
       const expenseQuantity = parseFloat(expense.Quantity);
       const expenseUnitPrice = parseFloat(expense.UnitPrice);
-      const total = expenseQuantity && expenseUnitPrice ? expenseQuantity * expenseUnitPrice : 0;
+      const total =
+        expenseQuantity && expenseUnitPrice
+          ? expenseQuantity * expenseUnitPrice
+          : 0;
       return acc + total;
     }, 0);
   };
@@ -378,40 +421,47 @@ const ConsumersDales = () => {
   const handleUpdate = (index) => {
     const expense = expenses[index];
     // Adjust these property names to match your actual expense object structure
-    setDate(new Date(expense.Date).toISOString().split('T')[0]);
+    setDate(new Date(expense.Date).toISOString().split("T")[0]);
     setSource(expense.Name); // Assuming the consumer name property is named "Name"
     setQuantity(expense.Quantity.toString()); // Assuming the quantity property is named "Quantity"
     setAmount(expense.UnitPrice.toString()); // Assuming the unit price property is named "UnitPrice"
     setEditIndex(index);
   };
   const toggleGlobalVisibility = () => {
-    setGlobalVisibility(prevState => {
+    setGlobalVisibility((prevState) => {
       const newState = !prevState;
       // Update all group visibilities based on the new global state
-      const newGroupVisibility = Object.keys(groupVisibility).reduce((acc, key) => {
-        acc[key] = newState; // Show or hide all based on the new global state
-        return acc;
-      }, {});
+      const newGroupVisibility = Object.keys(groupVisibility).reduce(
+        (acc, key) => {
+          acc[key] = newState; // Show or hide all based on the new global state
+          return acc;
+        },
+        {}
+      );
 
       setGroupVisibility(newGroupVisibility);
       return newState;
     });
   };
 
-
   return (
-    
     <div className="expenditure-container">
-
-<button onClick={() => navigate('/')} className="back-arrow">
+      <button onClick={() => navigate("/")} className="back-arrow">
         &#8592;
       </button>
       <h1 className="expenditure-title">{translations[language].title}</h1>
-      <button onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')} className="language-toggle">
-        {language === 'English' ? 'اردو' : 'English'}
+      <button
+        onClick={() =>
+          setLanguage((lang) => (lang === "English" ? "Urdu" : "English"))
+        }
+        className="language-toggle"
+      >
+        {language === "English" ? "اردو" : "English"}
       </button>
       <form className="expenditure-form" onSubmit={handleSave}>
-        <label htmlFor="date" className="expenditure-label">{translations[language].date}:</label>
+        <label htmlFor="date" className="expenditure-label">
+          {translations[language].date}:
+        </label>
         <input
           type="date"
           id="date"
@@ -421,25 +471,36 @@ const ConsumersDales = () => {
           required
         />
 
-        <label htmlFor="source" className="expenditure-label">{translations[language].name}:</label>
+        <label htmlFor="source" className="expenditure-label">
+          {translations[language].name}:
+        </label>
         <input
           type="text"
           id="source"
-          list="previous-names"
           value={source}
-          onChange={(e) => setSource(e.target.value)}
+          onChange={handleSourceChange}
+          onFocus={() => setShowDropdown(true)} // Show dropdown when input is focused
           className="expenditure-input"
           placeholder={translations[language].ConsumerName}
-          required
         />
 
-<datalist id="previous-names">
-          {uniqueNames.map((name, index) => (
-            <option key={index} value={name} />
-          ))}
-        </datalist>
+        {showDropdown && filteredNames.length > 0 && (
+          <ul className="custom-dropdown">
+            {filteredNames.map((name, index) => (
+              <li
+                key={index}
+                onClick={() => handleSelectName(name)}
+                className="dropdown-item"
+              >
+                {name}
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <label htmlFor="quantity" className="expenditure-label">{translations[language].quantity}:</label>
+        <label htmlFor="quantity" className="expenditure-label">
+          {translations[language].quantity}:
+        </label>
         <input
           type="number"
           id="quantity"
@@ -450,7 +511,9 @@ const ConsumersDales = () => {
           required
         />
 
-        <label htmlFor="amount" className="expenditure-label">{translations[language].pricePerKilo}:</label>
+        <label htmlFor="amount" className="expenditure-label">
+          {translations[language].pricePerKilo}:
+        </label>
         <input
           type="number"
           id="amount"
@@ -461,7 +524,9 @@ const ConsumersDales = () => {
           required
         />
 
-        <button type="submit" className="save-button">{translations[language].save}</button>
+        <button type="submit" className="save-button">
+          {translations[language].save}
+        </button>
       </form>
       {showModal && (
         <CustomModal
@@ -472,96 +537,151 @@ const ConsumersDales = () => {
       <div className="expenses-report">
         <h4>{translations[language].monthlyConsumerSale}:</h4>
 
-        <button onClick={toggleMonthlySalesVisibility} className="toggle-all-button">
-          {showMonthlySales ? translations[language].hideAll : translations[language].showAll}
+        <button
+          onClick={toggleMonthlySalesVisibility}
+          className="toggle-all-button"
+        >
+          {showMonthlySales
+            ? translations[language].hideAll
+            : translations[language].showAll}
         </button>
 
-        {showMonthlySales && Object.entries(getMonthlyExpenses()).map(([monthYear, total]) => {
-          // Split month and year
-          const [month, year] = monthYear.split(' ');
+        {showMonthlySales &&
+          Object.entries(getMonthlyExpenses()).map(([monthYear, total]) => {
+            // Split month and year
+            const [month, year] = monthYear.split(" ");
 
-          // Translate the month name if available, otherwise, use the original name
-          const translatedMonth = language === 'Urdu' ? monthTranslations[month] || month : month;
+            // Translate the month name if available, otherwise, use the original name
+            const translatedMonth =
+              language === "Urdu" ? monthTranslations[month] || month : month;
 
-          // Combine translated month and year
-          const translatedMonthYear = `${translatedMonth} ${year}`;
+            // Combine translated month and year
+            const translatedMonthYear = `${translatedMonth} ${year}`;
 
-          return (
-            <div key={monthYear} style={{ color: 'green' }}>
-              {translations[language].monthlySales} {translatedMonthYear} : {total}
-            </div>
-          );
-        })}
+            return (
+              <div key={monthYear} style={{ color: "green" }}>
+                {translations[language].monthlySales} {translatedMonthYear} :{" "}
+                {total}
+              </div>
+            );
+          })}
 
-
-        <h4>{translations[language].overallConsumerSale}:<br /><span style={{ color: 'green' }}>{getOverallExpenses()}</span></h4>
+        <h4>
+          {translations[language].overallConsumerSale}:<br />
+          <span style={{ color: "green" }}>{getOverallExpenses()}</span>
+        </h4>
       </div>
       <button onClick={toggleGlobalVisibility} className="global-toggle-button">
-        {globalVisibility ? translations[language].hide1 : translations[language].show1}
+        {globalVisibility
+          ? translations[language].hide1
+          : translations[language].show1}
       </button>
 
-      {globalVisibility && Object.entries(groupedExpenses).map(([monthYear, expensesList]) => (
-        // Your existing map function
-        (() => {
-          // Move the statements outside of JSX
-          const monthYearArray = monthYear.split(' ');
-          const month = monthYearArray[0];
-          const year = monthYearArray[1];
+      {globalVisibility &&
+        Object.entries(groupedExpenses).map(([monthYear, expensesList]) =>
+          // Your existing map function
+          (() => {
+            // Move the statements outside of JSX
+            const monthYearArray = monthYear.split(" ");
+            const month = monthYearArray[0];
+            const year = monthYearArray[1];
 
-          // Translate the month name if the current language is Urdu
-          const translatedMonthName = language === 'Urdu' ? (monthTranslations[month] || month) : month;
+            // Translate the month name if the current language is Urdu
+            const translatedMonthName =
+              language === "Urdu" ? monthTranslations[month] || month : month;
 
-          // Reconstruct the monthYear string with the possibly translated month name
-          const displayMonthYear = `${translatedMonthName} ${year}`;
+            // Reconstruct the monthYear string with the possibly translated month name
+            const displayMonthYear = `${translatedMonthName} ${year}`;
 
-          return (
-            <div key={monthYear}>
-              <h3 style={{ marginTop: 15 }}>
-                {displayMonthYear}
-                <button
-                  onClick={() => toggleGroupVisibility(monthYear)}
-                  className="toggle-button"
-                >
-                  {groupVisibility[monthYear] ? translations[language].hide : translations[language].show}
-                </button>
-              </h3>
-              {groupVisibility[monthYear] && (
-                <div className="expenses-display">
-                  {expensesList.map((expense, index) => {
-                    const actualIndex = expenses.findIndex(e => e === expense);
-                    const total = (!isNaN(expense.Quantity) && !isNaN(expense.UnitPrice))
-                      ? (expense.Quantity * expense.UnitPrice).toFixed(2)
-                      : 'N/A';
-                    return (
-                      <div key={index} className="expense-card">
-                     <div>{translations[language].date}: {new Date(expense.Date).toLocaleDateString()}</div>     
-                     <div>{translations[language].consumerName}: {expense.Name}</div>
-                        <div>{translations[language].quantity}: {Number.isFinite(expense.Quantity) ? expense.Quantity : 'N/A'}</div>
-                        <div>{translations[language].pricePerKilo}: {Number.isFinite(expense.UnitPrice) ? expense.UnitPrice : 'N/A'}</div>
-                        <div>{translations[language].total}: {expense.Total}</div>
+            return (
+              <div key={monthYear}>
+                <h3 style={{ marginTop: 15 }}>
+                  {displayMonthYear}
+                  <button
+                    onClick={() => toggleGroupVisibility(monthYear)}
+                    className="toggle-button"
+                  >
+                    {groupVisibility[monthYear]
+                      ? translations[language].hide
+                      : translations[language].show}
+                  </button>
+                </h3>
+                {groupVisibility[monthYear] && (
+                  <div className="expenses-display">
+                    {expensesList.map((expense, index) => {
+                      const actualIndex = expenses.findIndex(
+                        (e) => e === expense
+                      );
+                      const total =
+                        !isNaN(expense.Quantity) && !isNaN(expense.UnitPrice)
+                          ? (expense.Quantity * expense.UnitPrice).toFixed(2)
+                          : "N/A";
+                      return (
+                        <div key={index} className="expense-card">
+                          <div>
+                            {translations[language].date}:{" "}
+                            {new Date(expense.Date).toLocaleDateString()}
+                          </div>
+                          <div>
+                            {translations[language].consumerName}:{" "}
+                            {expense.Name}
+                          </div>
+                          <div>
+                            {translations[language].quantity}:{" "}
+                            {Number.isFinite(expense.Quantity)
+                              ? expense.Quantity
+                              : "N/A"}
+                          </div>
+                          <div>
+                            {translations[language].pricePerKilo}:{" "}
+                            {Number.isFinite(expense.UnitPrice)
+                              ? expense.UnitPrice
+                              : "N/A"}
+                          </div>
+                          <div>
+                            {translations[language].total}: {expense.Total}
+                          </div>
 
-                        <button onClick={() => handleDelete(actualIndex)} className="delete-button1">{translations[language].delete}</button>
-                        <button onClick={() => handleUpdate(actualIndex)} className="update-button">{translations[language].update}</button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })()
-      ))}
+                          <button
+                            onClick={() => handleDelete(actualIndex)}
+                            className="delete-button1"
+                          >
+                            {translations[language].delete}
+                          </button>
+                          <button
+                            onClick={() => handleUpdate(actualIndex)}
+                            className="update-button"
+                          >
+                            {translations[language].update}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()
+        )}
 
       {showAlert && (
         <div className="alert-dialog">
           <p>{translations[language].deletePrompt}</p>
-          <button onClick={() => handleAlertConfirm(true)} className="confirm-yes">{translations[language].yes}</button>
-          <button onClick={() => handleAlertConfirm(false)} className="confirm-no" >{translations[language].no}</button>
+          <button
+            onClick={() => handleAlertConfirm(true)}
+            className="confirm-yes"
+          >
+            {translations[language].yes}
+          </button>
+          <button
+            onClick={() => handleAlertConfirm(false)}
+            className="confirm-no"
+          >
+            {translations[language].no}
+          </button>
         </div>
       )}
-
     </div>
-
   );
 };
 

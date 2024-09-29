@@ -47,7 +47,7 @@
 
 .save-button {
     padding: 10px 20px;
-    background-color: #007bff;
+    background-color:#4CAF50;
     color: white;
     border: none;
     border-radius: 4px;
@@ -417,4 +417,25 @@
 
 .back-arrow:hover {
   color: #000; /* Darker color on hover */
+}
+.custom-dropdown {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  position: absolute; /* Ensures the dropdown is placed below the input */
+  width: 100%;
+  z-index: 1; /* Keeps it above other elements */
+}
+
+.dropdown-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f0f0f0;
 }
