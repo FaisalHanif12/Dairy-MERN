@@ -116,6 +116,30 @@ app.get('/unique-names', async (req, res) => {
     }
 });
 
+app.get('/unique-namesr', async (req, res) => {
+    try {
+        const uniqueNames = await RelativeSale.distinct('Rname');
+        console.log('Fetched names from MongoDB:', uniqueNames); // Log the response
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniqueNames);
+    } catch (err) {
+        console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+app.get('/unique-namese', async (req, res) => {
+    try {
+        const uniqueNames = await Expenditure.distinct('source');
+        console.log('Fetched names from MongoDB:', uniqueNames); // Log the response
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniqueNames);
+    } catch (err) {
+        console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 app.get("/consumerssale", async (req, res) => {

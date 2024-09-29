@@ -37,29 +37,6 @@ const ConsumersDales = () => {
     }
   };
 
-  // Handle input change for the consumer name field
-  const handleSourceChange = (e) => {
-    const value = e.target.value;
-    setSource(value);
-
-    // Filter names based on input value
-    if (value.trim()) {
-        const filtered = uniqueNames.filter((name) => name.toLowerCase().includes(value.toLowerCase()));
-        setFilteredNames(filtered);
-        setShowDropdown(filtered.length > 0); // Show the dropdown if filtered names exist
-    } else {
-        setFilteredNames([]); // Clear filtered names if input is empty
-        setShowDropdown(false); // Hide the dropdown if input is empty
-    }
-};
-
-
-  // Handle name selection from the dropdown
-  const handleSelectName = (name) => {
-    setSource(name); // Set selected name in input field
-    setShowDropdown(false); // Hide dropdown after selection
-  };
-
   const translations = {
     English: {
       title: "Consumer Sales",
@@ -477,26 +454,22 @@ const ConsumersDales = () => {
         <input
           type="text"
           id="source"
+          list="consumerNames"
           value={source}
-          onChange={handleSourceChange}
-          onFocus={() => setShowDropdown(true)} // Show dropdown when input is focused
+          onChange={(e) => setSource(e.target.value)} // This updates the source when the user types or selects
           className="expenditure-input"
-          placeholder={translations[language].ConsumerName}
+          placeholder="Enter Consumer Name"
         />
 
-        {showDropdown && filteredNames.length > 0 && (
-          <ul className="custom-dropdown">
-            {filteredNames.map((name, index) => (
-              <li
-                key={index}
-                onClick={() => handleSelectName(name)}
-                className="dropdown-item"
-              >
-                {name}
-              </li>
-            ))}
-          </ul>
-        )}
+        <datalist id="consumerNames">
+          {uniqueNames.length > 0 ? (
+            uniqueNames.map((name, index) => (
+              <option key={index} value={name} />
+            ))
+          ) : (
+            <option value="No names available" />
+          )}
+        </datalist>
 
         <label htmlFor="quantity" className="expenditure-label">
           {translations[language].quantity}:
