@@ -5,7 +5,7 @@ const salesSummarySchema = new mongoose.Schema({
         type: Number,
         unique: true,
         required: true,
-        default: 1 // You can default this to 1 if you only plan to have one summary record
+        default: 1
     },
     total_sales: {
         type: Number,
@@ -19,6 +19,20 @@ const salesSummarySchema = new mongoose.Schema({
         required: true,
         validate(value) {
             if (value < 0) throw new Error("Net sales cannot be negative.");
+        }
+    },
+    total_milk_sold: {  // Add this field
+        type: Number,
+        default: 0,
+        validate(value) {
+            if (value < 0) throw new Error("Total milk sold cannot be negative.");
+        }
+    },
+    profit: {  // Add this field
+        type: Number,
+        default: 0,
+        validate(value) {
+            if (value < 0) throw new Error("Profit cannot be negative.");
         }
     }
 });

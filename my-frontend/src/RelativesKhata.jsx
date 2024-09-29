@@ -30,16 +30,11 @@ const RelativesKhata = () => {
     fetchUniqueNames();
   }, []);
 
-  useEffect(() => {
-    console.log('Unique Names State:', uniqueNames); // Log the state after fetching
-  }, [uniqueNames]); // Add this log to verify the data is reaching the state
-
-  // Fetch unique names from the backend API
+ 
   const fetchUniqueNames = async () => {
     try {
       const response = await fetch("http://localhost:3001/unique-namesr");
       const data = await response.json();
-      console.log("Fetched unique names:", data); // Debug log
       setUniqueNames(data);
     } catch (error) {
       console.error("Error fetching unique names:", error);

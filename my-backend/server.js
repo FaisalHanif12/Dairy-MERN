@@ -49,12 +49,12 @@ async function updateSalesSummary() {
     try {
         // Calculate total sales from consumers
         const totalSalesConsumers = await ConsumerSale.aggregate([
-            { $group: { _id: null, total: { $sum: "$Total" } } }
+            { $group: { _id: null, total: { $sum: "$Total" }, totalMilk: { $sum: "$Quantity" } } }
         ]);
 
         // Calculate total sales from relatives
         const totalSalesRelatives = await RelativeSale.aggregate([
-            { $group: { _id: null, total: { $sum: "$RTotal" } } }
+            { $group: { _id: null, total: { $sum: "$RTotal" }, totalMilk: { $sum: "$Quantity" } } }
         ]);
 
         // Calculate total expenditures
@@ -62,19 +62,30 @@ async function updateSalesSummary() {
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
 
-        // Total sales and net sales calculation
+        // Total sales and total milk sold calculation
         const totalSales = (totalSalesConsumers[0]?.total || 0) + (totalSalesRelatives[0]?.total || 0);
         const totalExpenditure = totalExpenditures[0]?.total || 0;
         const netSales = totalSales - totalExpenditure;
 
-        // Update or create the sales summary using summaryId
+        // Total milk sold from both consumers and relatives
+        const totalMilkSold = (totalSalesConsumers[0]?.totalMilk || 0) + (totalSalesRelatives[0]?.totalMilk || 0);
+
+        // Calculate profit (net sales - total expenditure)
+        const profit = netSales;
+
+        // Upsert the sales summary (insert if it doesn't exist, otherwise update)
         await SalesSummary.findOneAndUpdate(
-            { summaryId: 1 }, // Use summaryId to identify the single sales summary record
-            { total_sales: totalSales, net_sales: netSales },
+            { summaryId: 1 },  // Assuming there's only one summary record with summaryId: 1
+            {
+                total_sales: totalSales,
+                net_sales: netSales,
+                total_milk_sold: totalMilkSold,  // New field to track total milk sold
+                profit: profit  // New field to track profit
+            },
             { upsert: true, new: true }
         );
 
-        console.log('Sales summary updated successfully');
+        console.log('Sales summary successfully updated with total milk sold and profit.');
     } catch (err) {
         console.error('Failed to update sales summary:', err);
     }
@@ -82,19 +93,22 @@ async function updateSalesSummary() {
 
 
 
+
 app.get('/sales_summary', async (req, res) => {
     try {
-        // Find the sales summary with the summaryId of 1 (assuming there's only one sales summary record)
+        // Find the sales summary by the summaryId (assuming it's 1)
         const salesSummary = await SalesSummary.findOne({ summaryId: 1 });
 
         if (!salesSummary) {
             return res.status(404).json({ message: 'Sales summary not found' });
         }
 
-        // Return the total sales and net sales
+        // Return the total sales, net sales, total milk sold, and profit
         res.json({
             total_sales: salesSummary.total_sales,
-            net_sales: salesSummary.net_sales
+            net_sales: salesSummary.net_sales,
+            total_milk_sold: salesSummary.total_milk_sold,  // Include total milk sold
+            profit: salesSummary.profit  // Include profit
         });
     } catch (err) {
         console.error('Failed to fetch sales summary:', err);
@@ -102,12 +116,12 @@ app.get('/sales_summary', async (req, res) => {
     }
 });
 
+
+
 app.get('/unique-names', async (req, res) => {
     try {
         // Fetch distinct consumer names from MongoDB
         const uniqueNames = await ConsumerSale.distinct('Name');
-
-        // Respond with the list of unique names
         res.setHeader('Content-Type', 'application/json');
         res.json(uniqueNames);
     } catch (err) {
@@ -119,7 +133,6 @@ app.get('/unique-names', async (req, res) => {
 app.get('/unique-namesr', async (req, res) => {
     try {
         const uniqueNames = await RelativeSale.distinct('Rname');
-        console.log('Fetched names from MongoDB:', uniqueNames); // Log the response
         res.setHeader('Content-Type', 'application/json');
         res.json(uniqueNames);
     } catch (err) {
@@ -132,7 +145,6 @@ app.get('/unique-namesr', async (req, res) => {
 app.get('/unique-namese', async (req, res) => {
     try {
         const uniqueNames = await Expenditure.distinct('source');
-        console.log('Fetched names from MongoDB:', uniqueNames); // Log the response
         res.setHeader('Content-Type', 'application/json');
         res.json(uniqueNames);
     } catch (err) {
@@ -140,6 +152,19 @@ app.get('/unique-namese', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+
+app.get('/unique-namesk', async (req, res) => {
+    try {
+        const uniqueNames = await Kharchay.distinct('source');
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniqueNames);
+    } catch (err) {
+        console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 
 app.get("/consumerssale", async (req, res) => {

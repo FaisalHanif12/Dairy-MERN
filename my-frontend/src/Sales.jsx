@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Sales.css';
 import { useNavigate } from 'react-router-dom';
+
 const Sales = () => {
   const navigate = useNavigate();
   const [salesSummary, setSalesSummary] = useState({});
@@ -18,12 +19,14 @@ const Sales = () => {
         throw new Error('Network response was not ok');
       }
       const data = await response.json();
+      console.log('Fetched Sales Summary:', data); // Log the response
       setSalesSummary(data);
     } catch (error) {
       setError('Failed to fetch sales data');
       console.error('There was an issue fetching sales data:', error);
     }
   };
+  
 
   const translations = {
     English: {
@@ -32,7 +35,9 @@ const Sales = () => {
       totalSalesLabel: "Sales before Expenditure",
       netSalesLabel: "Sales after Expenditure",
       totalSales: "Total Sales",
-      netSales: "Net Sales"
+      netSales: "Net Sales",
+      totalMilkSold: "Total Sold Milk",
+      profit: "Profit"
     },
     Urdu: {
       title: "خلاصہ فروخت",
@@ -40,7 +45,9 @@ const Sales = () => {
       totalSalesLabel: "اخراجات سے پہلے فروخت",
       netSalesLabel: "اخراجات کے بعد فروخت",
       totalSales: "کل فروخت",
-      netSales: "خالص فروخت"
+      netSales: "خالص فروخت",
+      totalMilkSold: "کل فروخت شدہ دودھ",
+      profit: "منافع"
     }
   };
 
@@ -57,8 +64,15 @@ const Sales = () => {
       <div className="sales-summary">
         <p className="sales-label">{translations[language].totalSalesLabel}</p>
         <p>{`${translations[language].totalSales}: ${salesSummary.total_sales || 0}`}</p>
+
         <p className="sales-label">{translations[language].netSalesLabel}</p>
         <p>{`${translations[language].netSales}: ${salesSummary.net_sales || 0}`}</p>
+
+        <p className="sales-label">{translations[language].totalMilkSold}</p>
+        <p>{`${translations[language].totalMilkSold}: ${salesSummary.total_sold_milk || 0}`}</p>
+
+        <p className="sales-label">{translations[language].profit}</p>
+        <p>{`${translations[language].profit}: ${salesSummary.profit || 0}`}</p>
       </div>
     </div>
   );

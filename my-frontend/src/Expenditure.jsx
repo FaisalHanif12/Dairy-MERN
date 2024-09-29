@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import './Expenditure.css';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import "./Expenditure.css";
+import { useNavigate } from "react-router-dom";
 const Expenditure = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState(() => {
     const today = new Date();
-    const day = String(today.getDate()).padStart(2, '0');
-    const month = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    const day = String(today.getDate()).padStart(2, "0");
+    const month = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
     const year = today.getFullYear();
 
     return `${year}-${month}-${day}`;
   });
-  const [source, setSource] = useState('');
-  const [amount, setAmount] = useState('');
+  const [source, setSource] = useState("");
+  const [amount, setAmount] = useState("");
   const [expenses, setExpenses] = useState([]);
   const [editIndex, setEditIndex] = useState(-1);
   const [showAlert, setShowAlert] = useState(false);
@@ -21,11 +21,25 @@ const Expenditure = () => {
   const [showMonthlySales, setShowMonthlySales] = useState(false);
   const [globalVisibility, setGlobalVisibility] = useState(false);
   const [showModal, setShowModal] = useState(false); // You already have this for controlling the visibility of the modal
-  const [modalMessage, setModalMessage] = useState(''); // Add this line to manage the modal message
-  const [language, setLanguage] = useState('English');
+  const [modalMessage, setModalMessage] = useState(""); // Add this line to manage the modal message
+  const [language, setLanguage] = useState("English");
+  const [uniqueNames, setUniqueNames] = useState([]);
+
+  useEffect(() => {
+    fetchUniqueNames();
+  }, []);
+
+  const fetchUniqueNames = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/unique-namese");
+      const data = await response.json();
+      setUniqueNames(data);
+    } catch (error) {
+      console.error("Error fetching unique names:", error);
+    }
+  };
 
   const translations = {
-
     English: {
       title: "Expenditure khata",
       date: "Date",
@@ -47,10 +61,10 @@ const Expenditure = () => {
       kaa: "of",
       added: "has been added",
       In: "In",
-      enterSource :"Enter source expense ",
+      enterSource: "Enter source expense ",
       enterAmount: "Enter amount of Expense",
-      expens : "Expense",
-   
+      expens: "Expense",
+
       record: "Record has been updated",
     },
     Urdu: {
@@ -76,10 +90,9 @@ const Expenditure = () => {
       In: "میں",
       enterSource: "خرچے کا ذریعہ درج کریں",
       enterAmount: "خرچے کی رقم درج کریں",
-      expens : 'اخراجات',
+      expens: "اخراجات",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
     },
-
   };
 
   const monthTranslations = {
@@ -98,19 +111,18 @@ const Expenditure = () => {
   };
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/expenditure');
+      const response = await fetch("http://localhost:3001/expenditure");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      const processedData = data.map(expense => ({
+      const processedData = data.map((expense) => ({
         ...expense,
         amount: parseFloat(expense.amount),
-
       }));
       setExpenses(processedData);
     } catch (error) {
-      console.error('There was an error fetching the sales data:', error);
+      console.error("There was an error fetching the sales data:", error);
     }
   };
 
@@ -119,17 +131,19 @@ const Expenditure = () => {
   }, []);
 
   const toggleGroupVisibility = (monthYear) => {
-    setGlobalVisibility(prevGlobalState => {
+    setGlobalVisibility((prevGlobalState) => {
       if (!prevGlobalState) {
         // If global visibility is off, ensure it stays off and don't toggle individual groups
-        console.warn("Global visibility is off. Can't toggle individual group visibility.");
+        console.warn(
+          "Global visibility is off. Can't toggle individual group visibility."
+        );
         return prevGlobalState;
       }
 
       // If global visibility is on, toggle the specific month/year group
-      setGroupVisibility(prevGroupVisibility => ({
+      setGroupVisibility((prevGroupVisibility) => ({
         ...prevGroupVisibility,
-        [monthYear]: !prevGroupVisibility[monthYear]
+        [monthYear]: !prevGroupVisibility[monthYear],
       }));
 
       return prevGlobalState; // Return the unchanged global state
@@ -154,11 +168,14 @@ const Expenditure = () => {
     const date = new Date(expenseDate);
 
     if (isNaN(date.getTime())) {
-      console.error('Invalid date for expense:', expense);
+      console.error("Invalid date for expense:", expense);
       return acc; // Skip this expense if the date is invalid
     }
 
-    const monthYear = `${date.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
+    const monthYear = `${date.toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    })}`;
     if (!acc[monthYear]) {
       acc[monthYear] = [];
     }
@@ -169,74 +186,84 @@ const Expenditure = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-  
+
     // Creating the payload object with the necessary fields
     const expensePayload = {
       Date: date,
       source: source,
       amount: parseFloat(amount),
     };
-  
+
     try {
       let response;
       if (editIndex >= 0) {
         // Assuming your expense objects use MongoDB's _id as the key for ID
         const expenseId = expenses[editIndex]._id; // Use the _id field for MongoDB documents
-        response = await fetch(`http://localhost:3001/expenditure/${expenseId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(expensePayload),
+        response = await fetch(
+          `http://localhost:3001/expenditure/${expenseId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(expensePayload),
+          }
+        );
+
+        const monthYear = new Date(date).toLocaleString("default", {
+          month: "long",
+          year: "numeric",
         });
-  
-        const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
         const alertMessage = `${translations[language].record} ${monthYear} ${translations[language].updated}`;
-  
+
         // Displaying the modal with the message
         setModalMessage(alertMessage);
         setShowModal(true);
-  
       } else {
         // Adding a new expense
-        response = await fetch('http://localhost:3001/expenditure', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        response = await fetch("http://localhost:3001/expenditure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
         });
-  
-        const monthYear = new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        const monthYear = new Date(date).toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        });
         const alertMessage = `${amount} ${translations[language].expens} ${translations[language].added} `;
-  
+
         // Displaying the modal with the message
         setModalMessage(alertMessage);
         setShowModal(true);
       }
-  
+
       // Checking if the request was successful
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       // Refresh the data after the operation
-      await fetchData(); 
-  
+      await fetchData();
+
       // Reset the form fields and the editIndex
-      setSource('');
-      setAmount('');
+      setSource("");
+      setAmount("");
       setEditIndex(-1);
-  
     } catch (error) {
-      console.error('There was an error saving the expense:', error);
+      console.error("There was an error saving the expense:", error);
     }
   };
-  
+
   const toggleGlobalVisibility = () => {
-    setGlobalVisibility(prevState => {
+    setGlobalVisibility((prevState) => {
       const newState = !prevState;
       // Update all group visibilities based on the new global state
-      const newGroupVisibility = Object.keys(groupVisibility).reduce((acc, key) => {
-        acc[key] = newState; // Show or hide all based on the new global state
-        return acc;
-      }, {});
+      const newGroupVisibility = Object.keys(groupVisibility).reduce(
+        (acc, key) => {
+          acc[key] = newState; // Show or hide all based on the new global state
+          return acc;
+        },
+        {}
+      );
 
       setGroupVisibility(newGroupVisibility);
       return newState;
@@ -244,7 +271,7 @@ const Expenditure = () => {
   };
 
   const toggleMonthlySalesVisibility = () => {
-    setShowMonthlySales(prevShow => !prevShow); // Toggle the visibility state
+    setShowMonthlySales((prevShow) => !prevShow); // Toggle the visibility state
   };
 
   const handleDelete = (index) => {
@@ -255,47 +282,56 @@ const Expenditure = () => {
   const handleAlertConfirm = async (isConfirmed) => {
     if (isConfirmed && deleteIndex != null) {
       const expense = expenses[deleteIndex];
-      
+
       // Ensure the correct field is used for the ID (assuming MongoDB's default _id field)
       if (expense && expense._id) {
         try {
           console.log("Attempting to delete expense with ID:", expense._id); // Debugging log
-          
-          const response = await fetch(`http://localhost:3001/expenditure/${expense._id}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-  
+
+          const response = await fetch(
+            `http://localhost:3001/expenditure/${expense._id}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-  
+
           const result = await response.json();
           console.log(result.message); // Log the message from the backend
-  
+
           // Refresh the expenses list after deleting an expense
           await fetchData();
-  
         } catch (error) {
-          console.error('There was an error deleting the sale:', error);
+          console.error("There was an error deleting the sale:", error);
         }
       } else {
-        console.error('Attempted to delete an expense without a valid ID:', expense ? expense : 'Expense not found');
+        console.error(
+          "Attempted to delete an expense without a valid ID:",
+          expense ? expense : "Expense not found"
+        );
       }
     }
-  
+
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
   };
-  
+
   const getMonthlyExpenses = () => {
     return expenses.reduce((acc, expense) => {
       const expenseDate = new Date(expense.Date); // Adjust according to your actual data structure
-      const monthYear = `${expenseDate.toLocaleString('default', { month: 'long' })} ${expenseDate.getFullYear()}`;
-      const expenseAmount = isNaN(parseFloat(expense.amount)) ? 0 : parseFloat(expense.amount);
+      const monthYear = `${expenseDate.toLocaleString("default", {
+        month: "long",
+      })} ${expenseDate.getFullYear()}`;
+      const expenseAmount = isNaN(parseFloat(expense.amount))
+        ? 0
+        : parseFloat(expense.amount);
 
       if (!acc[monthYear]) acc[monthYear] = 0;
       acc[monthYear] += expenseAmount;
@@ -304,16 +340,14 @@ const Expenditure = () => {
     }, {});
   };
 
-
   const getOverallExpenses = () => {
-
     return expenses.reduce((acc, expense) => acc + expense.amount, 0);
   };
 
   const handleUpdate = (index) => {
     const expense = expenses[index];
     // Correctly assign values from the expense object
-    setDate(new Date(expense.Date).toISOString().split('T')[0]); // Ensure the property names match your data structure
+    setDate(new Date(expense.Date).toISOString().split("T")[0]); // Ensure the property names match your data structure
     setSource(expense.source); // This should be the source, not the total or any other field
     setAmount(expense.amount.toString());
     setEditIndex(index);
@@ -321,15 +355,22 @@ const Expenditure = () => {
 
   return (
     <div className="expenditure-container">
-      <button onClick={() => navigate('/')} className="back-arrow">
+      <button onClick={() => navigate("/")} className="back-arrow">
         &#8592;
       </button>
       <h1 className="expenditure-title">{translations[language].title}</h1>
-      <button onClick={() => setLanguage(lang => lang === 'English' ? 'Urdu' : 'English')} className="language-toggle">
-        {language === 'English' ? 'اردو' : 'English'}
+      <button
+        onClick={() =>
+          setLanguage((lang) => (lang === "English" ? "Urdu" : "English"))
+        }
+        className="language-toggle"
+      >
+        {language === "English" ? "اردو" : "English"}
       </button>
       <form className="expenditure-form" onSubmit={handleSave}>
-        <label htmlFor="date" className="expenditure-label">{translations[language].date}</label>
+        <label htmlFor="date" className="expenditure-label">
+          {translations[language].date}
+        </label>
         <input
           type="date"
           id="date"
@@ -339,10 +380,13 @@ const Expenditure = () => {
           required
         />
 
-        <label htmlFor="source" className="expenditure-label">{translations[language].source}</label>
+        <label htmlFor="source" className="expenditure-label">
+          {translations[language].source}
+        </label>
         <input
           type="text"
           id="source"
+          list="consumerNames"
           value={source}
           onChange={(e) => setSource(e.target.value)}
           className="expenditure-input"
@@ -350,7 +394,19 @@ const Expenditure = () => {
           required
         />
 
-        <label htmlFor="amount" className="expenditure-label">{translations[language].amount}</label>
+        <datalist id="consumerNames">
+          {uniqueNames.length > 0 ? (
+            uniqueNames.map((name, index) => (
+              <option key={index} value={name} />
+            ))
+          ) : (
+            <option value="No names available" />
+          )}
+        </datalist>
+
+        <label htmlFor="amount" className="expenditure-label">
+          {translations[language].amount}
+        </label>
         <input
           type="number"
           id="amount"
@@ -361,7 +417,9 @@ const Expenditure = () => {
           required
         />
 
-        <button type="submit" className="save-button">{translations[language].save}</button>
+        <button type="submit" className="save-button">
+          {translations[language].save}
+        </button>
       </form>
       {showModal && (
         <CustomModal
@@ -372,82 +430,128 @@ const Expenditure = () => {
       <div className="expenses-report">
         <h4>{translations[language].monthlyExpenseReport}</h4>
 
-        <button onClick={toggleMonthlySalesVisibility} className="toggle-all-button">
-          {showMonthlySales ? translations[language].hideAll : translations[language].showAll}
+        <button
+          onClick={toggleMonthlySalesVisibility}
+          className="toggle-all-button"
+        >
+          {showMonthlySales
+            ? translations[language].hideAll
+            : translations[language].showAll}
         </button>
 
-        {showMonthlySales && Object.entries(getMonthlyExpenses()).map(([monthYear, total]) => {
-          // Split month and year
-          const [month, year] = monthYear.split(' ');
+        {showMonthlySales &&
+          Object.entries(getMonthlyExpenses()).map(([monthYear, total]) => {
+            // Split month and year
+            const [month, year] = monthYear.split(" ");
 
-          // Translate the month name if available, otherwise, use the original name
-          const translatedMonth = language === 'Urdu' ? monthTranslations[month] || month : month;
+            // Translate the month name if available, otherwise, use the original name
+            const translatedMonth =
+              language === "Urdu" ? monthTranslations[month] || month : month;
 
-          // Combine translated month and year
-          const translatedMonthYear = `${translatedMonth} ${year}`;
+            // Combine translated month and year
+            const translatedMonthYear = `${translatedMonth} ${year}`;
 
-          return (
-            <div key={monthYear} style={{ color: 'green' }}>
-              {translations[language].monthlySales} {translatedMonthYear} : {total}
-            </div>
-          );
-        })}
+            return (
+              <div key={monthYear} style={{ color: "green" }}>
+                {translations[language].monthlySales} {translatedMonthYear} :{" "}
+                {total}
+              </div>
+            );
+          })}
 
-
-        <h4>{translations[language].overallExpenses}<br /><span style={{ color: 'green' }}>{getOverallExpenses()}</span></h4>
+        <h4>
+          {translations[language].overallExpenses}
+          <br />
+          <span style={{ color: "green" }}>{getOverallExpenses()}</span>
+        </h4>
       </div>
       <button onClick={toggleGlobalVisibility} className="global-toggle-button">
-        {globalVisibility ? translations[language].hideAll : translations[language].showAll}
+        {globalVisibility
+          ? translations[language].hideAll
+          : translations[language].showAll}
       </button>
 
-      {globalVisibility && Object.entries(groupedExpenses).map(([monthYear, expensesList]) => (
-        (() => {
-          const monthYearArray = monthYear.split(' ');
-          const month = monthYearArray[0];
-          const year = monthYearArray[1];
+      {globalVisibility &&
+        Object.entries(groupedExpenses).map(([monthYear, expensesList]) =>
+          (() => {
+            const monthYearArray = monthYear.split(" ");
+            const month = monthYearArray[0];
+            const year = monthYearArray[1];
 
-          // Translate the month name if the current language is Urdu
-          const translatedMonthName = language === 'Urdu' ? (monthTranslations[month] || month) : month;
+            // Translate the month name if the current language is Urdu
+            const translatedMonthName =
+              language === "Urdu" ? monthTranslations[month] || month : month;
 
-          // Reconstruct the monthYear string with the possibly translated month name
-          const displayMonthYear = `${translatedMonthName} ${year}`;
+            // Reconstruct the monthYear string with the possibly translated month name
+            const displayMonthYear = `${translatedMonthName} ${year}`;
 
-          return (
-            <div key={monthYear}>
-              <h3 style={{ marginTop: 15 }}>
-                {displayMonthYear}
-                <button
-                  onClick={() => toggleGroupVisibility(monthYear)}
-                  className="toggle-button"
-                >
-                  {groupVisibility[monthYear] ? translations[language].hide : translations[language].show}
-                </button>
-              </h3>
-              {groupVisibility[monthYear] && (
-                <div className="expenses-display">
-                  {expensesList.map((expense, index) => {
-                    const actualIndex = expenses.findIndex(e => e === expense);
-                    return (
-                      <div key={index} className="expense-card">
-                        <div>{translations[language].date} :  {new Date(expense.Date).toLocaleDateString()}</div>
-                        <div>{translations[language].source} : {expense.source}</div>
-                        <div>{translations[language].amount} : {expense.amount}</div>
-                        <button onClick={() => handleDelete(actualIndex)} className="delete-button1">{translations[language].delete} </button>
-                        <button onClick={() => handleUpdate(actualIndex)} className="update-button">{translations[language].update} </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })()
-      ))}
+            return (
+              <div key={monthYear}>
+                <h3 style={{ marginTop: 15 }}>
+                  {displayMonthYear}
+                  <button
+                    onClick={() => toggleGroupVisibility(monthYear)}
+                    className="toggle-button"
+                  >
+                    {groupVisibility[monthYear]
+                      ? translations[language].hide
+                      : translations[language].show}
+                  </button>
+                </h3>
+                {groupVisibility[monthYear] && (
+                  <div className="expenses-display">
+                    {expensesList.map((expense, index) => {
+                      const actualIndex = expenses.findIndex(
+                        (e) => e === expense
+                      );
+                      return (
+                        <div key={index} className="expense-card">
+                          <div>
+                            {translations[language].date} :{" "}
+                            {new Date(expense.Date).toLocaleDateString()}
+                          </div>
+                          <div>
+                            {translations[language].source} : {expense.source}
+                          </div>
+                          <div>
+                            {translations[language].amount} : {expense.amount}
+                          </div>
+                          <button
+                            onClick={() => handleDelete(actualIndex)}
+                            className="delete-button1"
+                          >
+                            {translations[language].delete}{" "}
+                          </button>
+                          <button
+                            onClick={() => handleUpdate(actualIndex)}
+                            className="update-button"
+                          >
+                            {translations[language].update}{" "}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()
+        )}
       {showAlert && (
         <div className="alert-dialog">
           <p>{translations[language].deletePrompt} :</p>
-          <button onClick={() => handleAlertConfirm(true)} className="confirm-yes">{translations[language].yes} </button>
-          <button onClick={() => handleAlertConfirm(false)} className="confirm-no" >{translations[language].no} </button>
+          <button
+            onClick={() => handleAlertConfirm(true)}
+            className="confirm-yes"
+          >
+            {translations[language].yes}{" "}
+          </button>
+          <button
+            onClick={() => handleAlertConfirm(false)}
+            className="confirm-no"
+          >
+            {translations[language].no}{" "}
+          </button>
         </div>
       )}
     </div>
