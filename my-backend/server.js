@@ -65,27 +65,23 @@ async function updateSalesSummary() {
         // Total sales and total milk sold calculation
         const totalSales = (totalSalesConsumers[0]?.total || 0) + (totalSalesRelatives[0]?.total || 0);
         const totalExpenditure = totalExpenditures[0]?.total || 0;
-        const netSales = totalSales - totalExpenditure;
 
-        // Total milk sold from both consumers and relatives
-        const totalMilkSold = (totalSalesConsumers[0]?.totalMilk || 0) + (totalSalesRelatives[0]?.totalMilk || 0);
+        // Calculate profit
+        const profit = totalSales - totalExpenditure;
 
-        // Calculate profit (net sales - total expenditure)
-        const profit = netSales;
-
-        // Upsert the sales summary (insert if it doesn't exist, otherwise update)
+        // Upsert the sales summary
         await SalesSummary.findOneAndUpdate(
-            { summaryId: 1 },  // Assuming there's only one summary record with summaryId: 1
+            { summaryId: 1 },
             {
                 total_sales: totalSales,
-                net_sales: netSales,
-                total_milk_sold: totalMilkSold,  // New field to track total milk sold
-                profit: profit  // New field to track profit
+                total_expenditure: totalExpenditure,  // Updated field to reflect total expenditure
+                total_milk_sold: (totalSalesConsumers[0]?.totalMilk || 0) + (totalSalesRelatives[0]?.totalMilk || 0),
+                profit: profit
             },
             { upsert: true, new: true }
         );
 
-        console.log('Sales summary successfully updated with total milk sold and profit.');
+        console.log('Sales summary successfully updated.');
     } catch (err) {
         console.error('Failed to update sales summary:', err);
     }

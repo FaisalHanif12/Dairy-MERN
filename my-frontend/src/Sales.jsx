@@ -19,33 +19,32 @@ const Sales = () => {
         throw new Error('Network response was not ok');
       }
       const data = await response.json();
-      console.log('Fetched Sales Summary:', data); // Log the response
+      console.log("Fetched Sales Summary:", data);
       setSalesSummary(data);
     } catch (error) {
       setError('Failed to fetch sales data');
       console.error('There was an issue fetching sales data:', error);
     }
   };
-  
 
   const translations = {
     English: {
       title: "Sales Summary",
       error: "Error fetching data",
-      totalSalesLabel: "Sales before Expenditure",
-      netSalesLabel: "Sales after Expenditure",
+      totalSalesLabel: "Total Sales",
+      totalExpenditureLabel: "Total Expenditure", // Updated label
       totalSales: "Total Sales",
-      netSales: "Net Sales",
+      totalExpenditure: "Total Expenditure", // Updated label
       totalMilkSold: "Total Sold Milk",
-      profit: "Profit"
+      profit: "Total Profit"
     },
     Urdu: {
       title: "خلاصہ فروخت",
       error: "ڈیٹا حاصل کرنے میں خرابی",
-      totalSalesLabel: "اخراجات سے پہلے فروخت",
-      netSalesLabel: "اخراجات کے بعد فروخت",
+      totalSalesLabel: "کل فروخت",
+      totalExpenditureLabel: "کل اخراجات", // Updated Urdu label
       totalSales: "کل فروخت",
-      netSales: "خالص فروخت",
+      totalExpenditure: "کل اخراجات", // Updated Urdu label
       totalMilkSold: "کل فروخت شدہ دودھ",
       profit: "منافع"
     }
@@ -65,11 +64,11 @@ const Sales = () => {
         <p className="sales-label">{translations[language].totalSalesLabel}</p>
         <p>{`${translations[language].totalSales}: ${salesSummary.total_sales || 0}`}</p>
 
-        <p className="sales-label">{translations[language].netSalesLabel}</p>
-        <p>{`${translations[language].netSales}: ${salesSummary.net_sales || 0}`}</p>
+        <p className="sales-label">{translations[language].totalExpenditureLabel}</p> {/* Updated */}
+        <p>{`${translations[language].totalExpenditure}: ${salesSummary.net_sales || 0}`}</p> {/* Updated */}
 
         <p className="sales-label">{translations[language].totalMilkSold}</p>
-        <p>{`${translations[language].totalMilkSold}: ${salesSummary.total_sold_milk || 0}`}</p>
+        <p>{`${translations[language].totalMilkSold}: ${salesSummary.total_milk_sold || 0}`}</p>
 
         <p className="sales-label">{translations[language].profit}</p>
         <p>{`${translations[language].profit}: ${salesSummary.profit || 0}`}</p>
