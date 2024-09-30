@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "./RelativesKhata.css";
 import { useNavigate } from "react-router-dom";
+
+import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+
 const RelativesKhata = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState(() => {
@@ -66,6 +69,7 @@ const RelativesKhata = () => {
       enterPricePerKilo: "Enter Price per kilo",
       relativesKhata: "Relatives Sales",
       KiloMilk: "Kilo Milk",
+      download: "Download Report",
       kaa: "of",
       added: "has been added",
       In: "In",
@@ -82,6 +86,7 @@ const RelativesKhata = () => {
       overallRelativesSale: "کل رشتہ داروں کی فروخت",
       showAll: "سب دیکھیں",
       hideAll: "سب چھپائیں",
+      download: "رپورٹ ڈاؤن لوڈ کریں",
       show: "دیکھیں",
       hide: "چھپائیں",
       delete: "حذف کریں",
@@ -140,6 +145,36 @@ const RelativesKhata = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+
+  const generateReport = () => {
+    const reportData = expenses.map((expense) => {
+      const date = new Date(expense.Date).toLocaleDateString();
+      const name = expense.Rname; // Use Rname for relative name
+      const quantity = expense.Quantity;
+      const unitPrice = expense.RUnitPrice; // Use RUnitPrice for unit price
+      const total = expense.RTotal; // Use RTotal for total
+  
+      return language === "English"
+        ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
+        : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
+    }).join("\n");
+  
+    const reportHeader = language === "English"
+      ? `${translations[language].relativesKhata}\n\n` // Updated title for RelativesKhata
+      : `${translations[language].relativesKhata}\n\n`;
+  
+    return reportHeader + reportData;
+  };
+  
+  // Handle download report
+  const handleDownloadReport = () => {
+    const report = generateReport();
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `RelativeSalesReport_${language}.txt`);
+  };
+
+
 
   const toggleGroupVisibility = (monthYear) => {
     setGlobalVisibility((prevGlobalState) => {
@@ -507,6 +542,11 @@ const RelativesKhata = () => {
         {globalVisibility
           ? translations[language].hideAll
           : translations[language].showAll}
+      </button>
+
+
+      <button onClick={handleDownloadReport} className="download-button">
+        {translations[language].download}
       </button>
 
       {globalVisibility &&

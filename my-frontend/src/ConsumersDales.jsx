@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./ConsumersDales.css";
 import { useNavigate } from "react-router-dom";
+import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
 
 const ConsumersDales = () => {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const ConsumersDales = () => {
       save: "Save",
       monthlyConsumerSale: "Monthly Consumer Sale",
       overallConsumerSale: "Overall Consumers Sale",
+      download: "Download Report",
       showAll: "Show",
       hideAll: "Hide ",
       show: "Show ",
@@ -78,6 +80,7 @@ const ConsumersDales = () => {
       save: "محفوظ کریں",
       monthlyConsumerSale: "ماہانہ صارفین کی فروخت",
       overallConsumerSale: "کل صارفین کی فروخت",
+      download: "رپورٹ ڈاؤن لوڈ کریں",
       showAll: " دیکھیں",
       hideAll: " چھپائیں",
       show: " دیکھیں",
@@ -164,6 +167,34 @@ const ConsumersDales = () => {
   }, []); // The empty dependency array ensures this runs only on mount
 
   // ... rest of your component
+
+
+  const generateReport = () => {
+    const reportData = expenses.map((expense) => {
+      const date = new Date(expense.Date).toLocaleDateString();
+      const name = expense.Name;
+      const quantity = expense.Quantity;
+      const unitPrice = expense.UnitPrice;
+      const total = expense.Total;
+
+      return language === "English"
+        ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
+        : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
+    }).join("\n");
+
+    const reportHeader = language === "English"
+      ? `${translations[language].title}\n\n`
+      : `${translations[language].title}\n\n`;
+
+    return reportHeader + reportData;
+  };
+
+  // Handle download report
+  const handleDownloadReport = () => {
+    const report = generateReport();
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `ConsumerSalesReport_${language}.txt`);
+  };
 
   const [date, setDate] = useState(() => {
     const today = new Date();
@@ -548,6 +579,10 @@ const ConsumersDales = () => {
         {globalVisibility
           ? translations[language].hide1
           : translations[language].show1}
+      </button>
+
+      <button onClick={handleDownloadReport} className="download-button">
+        {translations[language].download}
       </button>
 
       {globalVisibility &&

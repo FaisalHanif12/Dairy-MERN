@@ -520,30 +520,48 @@
   background-color: #f44336; /* Red */
 }
 
-.global-toggle-buttonn {
-  padding: 8px 18px; /* Slightly smaller size */
-  font-size: 15px; /* Adjusted font size for a smaller button */
+
+/* Shared styling for both buttons */
+.common-button {
+  padding: 8px 18px; /* Slightly smaller size for both buttons */
+  font-size: 15px; /* Adjusted font size for both buttons */
   font-weight: bold;
   color: white;
-  background-image: linear-gradient(to right, #007bff 0%, #00dbde 100%); /* New background color */
+  background-image: linear-gradient(to right, #56ab2f 0%, #a8e063 100%);
   border: none;
-  border-radius: 25px; /* Slightly less rounded */
+  border-radius: 25px; /* Slightly rounded corners */
   cursor: pointer;
   outline: none;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
-  margin-top: 20px; /* Added margin from the top */
+  margin-top: 10px; /* Adjust margins for both buttons */
+  display: inline-block;
+  width: auto; /* Ensures buttons are not full width */
 }
 
-.global-toggle-buttonn:hover {
-  background-image: linear-gradient(to right, #00dbde 0%, #007bff 100%);
+/* Hover and Active States */
+.common-button:hover {
+  background-image: linear-gradient(to right, #a8e063 0%, #56ab2f 100%);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
-.global-toggle-buttonn:active {
+.common-button:active {
   transform: translateY(2px);
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
 }
+
+/* Specific styling for download button */
+.download-buttonn {
+  border-radius: 50px; /* More rounded corners for download button */
+  margin-right: 10px; /* Small margin-right for download button */
+}
+
+/* Specific styling for toggle button */
+.global-toggle-buttonn {
+  border-radius: 25px; /* Less rounded corners for the toggle button */
+}
+
+
 
 .back-arrow1 {
   font-size: 24px;
@@ -561,3 +579,5 @@
 .back-arrow1:hover {
   color: #000; /* Darker color on hover */
 }
+
+

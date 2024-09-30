@@ -330,7 +330,7 @@
 }
 
 .updatee-button {
-  background-color: #e67e22; /* Orange color for the Update button */
+  background-color: #4CAF50; /* Orange color for the Update button */
   color: #fff;
 }
 /* Media query for smaller screens */
@@ -525,7 +525,7 @@
   font-size: 15px; /* Adjusted font size for a smaller button */
   font-weight: bold;
   color: white;
-  background-image: linear-gradient(to right, #007bff 0%, #00dbde 100%); /* New background color */
+  background-image: linear-gradient(to right, #56ab2f 0%, #a8e063 100%);
   border: none;
   border-radius: 25px; /* Slightly less rounded */
   cursor: pointer;
@@ -540,7 +540,7 @@
 }
 
 .global-toggle-buttonnn:hover {
-  background-image: linear-gradient(to right, #00dbde 0%, #007bff 100%);
+  background-image: linear-gradient(to right, #56ab2f 0%, #a8e063 100%);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Expenditure.css";
 import { useNavigate } from "react-router-dom";
+import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
 const Expenditure = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState(() => {
@@ -60,6 +61,7 @@ const Expenditure = () => {
       KiloMilk: "Kilo Milk",
       kaa: "of",
       added: "has been added",
+      download: "Download Report",
       In: "In",
       enterSource: "Enter source expense ",
       enterAmount: "Enter amount of Expense",
@@ -91,6 +93,7 @@ const Expenditure = () => {
       enterSource: "خرچے کا ذریعہ درج کریں",
       enterAmount: "خرچے کی رقم درج کریں",
       expens: "اخراجات",
+      download: "رپورٹ ڈاؤن لوڈ کریں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
     },
   };
@@ -129,6 +132,36 @@ const Expenditure = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+   
+  const generateReport = () => {
+    const reportData = expenses
+      .map((expense) => {
+        const date = new Date(expense.Date).toLocaleDateString();
+        const source = expense.source;
+        const amount = expense.amount;
+
+        return language === "English"
+          ? `Date: ${date}, Source: ${source}, Amount: ${amount}`
+          : `تاریخ: ${date}, خرچے کا ذریعہ: ${source}, رقم: ${amount}`;
+      })
+      .join("\n");
+
+    const reportHeader =
+      language === "English"
+        ? `${translations[language].title}\n\n`
+        : `${translations[language].title}\n\n`;
+
+    return reportHeader + reportData;
+  };
+
+  const handleDownloadReport = () => {
+    const report = generateReport();
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `ExpenditureReport_${language}.txt`);
+  };
+
+
 
   const toggleGroupVisibility = (monthYear) => {
     setGlobalVisibility((prevGlobalState) => {
@@ -469,6 +502,11 @@ const Expenditure = () => {
         {globalVisibility
           ? translations[language].hideAll
           : translations[language].showAll}
+      </button>
+
+
+      <button onClick={handleDownloadReport} className="download-button">
+        {translations[language].download}
       </button>
 
       {globalVisibility &&

@@ -91,8 +91,7 @@ async function updateSalesSummary() {
             { upsert: true, new: true }
         );
 
-        console.log('Sales summary successfully updated with total expenditure and profit.');
-    } catch (err) {
+        } catch (err) {
         console.error('Failed to update sales summary:', err);
     }
 }
@@ -239,18 +238,15 @@ app.post("/consumerssale", async (req, res) => {
 
     console.log('Parsed values:', { Date, Name, Quantity, UnitPrice });
 
-    // Check for missing fields
     if (!Date || !Name || !Quantity || !UnitPrice) {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Parse Quantity and UnitPrice as floats
     const parsedQuantity = parseFloat(Quantity);
     const parsedUnitPrice = parseFloat(UnitPrice);
 
-    // Validate Quantity and UnitPrice to ensure they are positive numbers
-    if (isNaN(parsedQuantity) || isNaN(parsedUnitPrice) || parsedQuantity > 0 || parsedUnitPrice > 0) {
-        return res.status(400).json({ error: "Quantity and UnitPrice must be positive numbers greater than zero." });
+    if (isNaN(parsedQuantity) || isNaN(parsedUnitPrice) ) {
+        return res.status(400).json({ error: "Invalid Quantity or UnitPrice" });
     }
 
     const Total = parsedQuantity * parsedUnitPrice;

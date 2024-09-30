@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./ConsumerKhata.css";
 import { useNavigate } from 'react-router-dom';
+import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+
 const ConsumerKhata = () => {
   const navigate = useNavigate();
   const getTodayDate = () => {
@@ -84,6 +86,7 @@ const ConsumerKhata = () => {
       Show: "Show",
       Hide: "Hide",
       datee: "Please enter a date",
+      downloadReport: "Download Report",
       consumerNamee: "Please enter consumer name",
       baqayaa: "Please enter baqaya amount",
       baqayaNumberr: "Baqaya must be a number",
@@ -120,6 +123,7 @@ const ConsumerKhata = () => {
       baqayaNumberr: "باقیہ کو نمبر ہونا چاہئے",
       wasooliAmountt: "براہ کرم وصولی کی رقم بھریں",
       wasooliDatee: "تاریخ ضروری ہے",
+      downloadReport: "رپورٹ ڈاؤن لوڈ کریں",
       baqayaerror: "برائے مہربانی باقیہ رقم بھریں",
     },
   };
@@ -169,6 +173,29 @@ const ConsumerKhata = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const generateReport = (consumer) => {
+    const reportData = consumer.wasooliTransactions.map((transaction) => {
+      const date = new Date(transaction.date).toLocaleDateString();
+      const wasooli = transaction.Wasooli;
+
+      return language === "English"
+        ? `Date: ${date}, Wasooli: ${wasooli}`
+        : `تاریخ: ${date}, وصولی: ${wasooli}`;
+    }).join("\n");
+
+    const reportHeader = language === "English"
+      ? `${translations[language].consumerKhata} - ${consumer.name}\n\n`
+      : `${translations[language].consumerKhata} - ${consumer.name}\n\n`;
+
+    return reportHeader + reportData;
+  };
+
+  const handleDownloadReport = (consumer) => {
+    const report = generateReport(consumer);
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `WasooliReport_${consumer.name}_${language}.txt`);
+  };
 
   const CustomModal = ({ message, onClose }) => {
     return (
@@ -732,6 +759,8 @@ const ConsumerKhata = () => {
         message={alertMessage}
         onClose={() => setIsAlertVisible(false)}
       />
+
+      
       {consumers.map((consumer) => (
         <div className="consumer-card" key={consumer._id}>
           <h2 className="consumer-name">
@@ -772,8 +801,18 @@ const ConsumerKhata = () => {
               {translations[language].update}
             </button>
           </div>
+
           <button
-            className="global-toggle-buttonn"
+              className="common-button global-toggle-buttonn"
+              onClick={() => handleDownloadReport(consumer)}
+            >
+              {translations[language].downloadReport}
+            </button>
+                 
+
+          
+          <button
+            className="common-button download-buttonn"
             onClick={() =>
               toggleMonthYearButtonsVisibility(consumer._id)
             }
@@ -782,6 +821,8 @@ const ConsumerKhata = () => {
               ? translations[language].hideAll
               : translations[language].showAll}
           </button>
+    
+        
 
           {renderWasooliTransactions(consumer)}
 
