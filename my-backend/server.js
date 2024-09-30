@@ -239,15 +239,18 @@ app.post("/consumerssale", async (req, res) => {
 
     console.log('Parsed values:', { Date, Name, Quantity, UnitPrice });
 
+    // Check for missing fields
     if (!Date || !Name || !Quantity || !UnitPrice) {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // Parse Quantity and UnitPrice as floats
     const parsedQuantity = parseFloat(Quantity);
     const parsedUnitPrice = parseFloat(UnitPrice);
 
-    if (isNaN(parsedQuantity) || isNaN(parsedUnitPrice) || parsedQuantity <= 0 || parsedUnitPrice <= 0) {
-        return res.status(400).json({ error: "Invalid Quantity or UnitPrice" });
+    // Validate Quantity and UnitPrice to ensure they are positive numbers
+    if (isNaN(parsedQuantity) || isNaN(parsedUnitPrice) || parsedQuantity > 0 || parsedUnitPrice > 0) {
+        return res.status(400).json({ error: "Quantity and UnitPrice must be positive numbers greater than zero." });
     }
 
     const Total = parsedQuantity * parsedUnitPrice;
