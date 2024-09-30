@@ -175,21 +175,28 @@ const ConsumerKhata = () => {
   }, []);
 
   const generateReport = (consumer) => {
+    // Generate the wasooli transaction details
     const reportData = consumer.wasooliTransactions.map((transaction) => {
       const date = new Date(transaction.date).toLocaleDateString();
       const wasooli = transaction.Wasooli;
-
+  
       return language === "English"
         ? `Date: ${date}, Wasooli: ${wasooli}`
         : `تاریخ: ${date}, وصولی: ${wasooli}`;
     }).join("\n");
-
+  
+    // Add the total Baqaya to the report
+    const totalBaqaya = language === "English"
+      ? `Total Baqaya: ${consumer.baqaya}`
+      : `کل باقیہ: ${consumer.baqaya}`;
+  
     const reportHeader = language === "English"
       ? `${translations[language].consumerKhata} - ${consumer.name}\n\n`
       : `${translations[language].consumerKhata} - ${consumer.name}\n\n`;
-
-    return reportHeader + reportData;
+  
+    return reportHeader + reportData + `\n\n${totalBaqaya}`;
   };
+  
 
   const handleDownloadReport = (consumer) => {
     const report = generateReport(consumer);
@@ -802,15 +809,7 @@ const ConsumerKhata = () => {
             </button>
           </div>
 
-          <button
-              className="common-button global-toggle-buttonn"
-              onClick={() => handleDownloadReport(consumer)}
-            >
-              {translations[language].downloadReport}
-            </button>
-                 
-
-          
+                  
           <button
             className="common-button download-buttonn"
             onClick={() =>
@@ -821,9 +820,15 @@ const ConsumerKhata = () => {
               ? translations[language].hideAll
               : translations[language].showAll}
           </button>
-    
-        
 
+
+          <button
+              className="common-button global-toggle-buttonn"
+              onClick={() => handleDownloadReport(consumer)}
+            >
+              {translations[language].downloadReport}
+            </button>
+    
           {renderWasooliTransactions(consumer)}
 
           {currentManaging === consumer._id && isWasooliVisible && (

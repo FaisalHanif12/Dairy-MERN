@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./Employee.css";
 import { useNavigate } from "react-router-dom";
+import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+
 const Employee = () => {
   const navigate = useNavigate();
   const getTodayDate = () => {
@@ -110,6 +112,8 @@ const Employee = () => {
       baqayaNumberr: "Baqaya must be a number",
       wasooliAmountt: "Please fill up the khatcha amount",
       baqayaerror: "Please fill up the baqaya amount",
+      downloadReport: "Download Report", // Added for report generation
+      totalBaqaya: "Total Baqaya", // Added for total baqaya
     },
     Urdu: {
       date: "تاریخ",
@@ -151,6 +155,8 @@ const Employee = () => {
       wasooliAmountt: "براہ کرم وصولی کی رقم بھریں",
       wasooliDatee: "تاریخ ضروری ہے",
       baqayaerror: "برائے مہربانی باقیہ رقم بھریں",
+      downloadReport: "رپورٹ ", // Added for report generation
+      totalBaqaya: "کل باقیہ", // Added for total baqaya
     },
   };
   const monthTranslations = {
@@ -208,6 +214,29 @@ const Employee = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const generateReport = (consumer) => {
+    const reportHeader = `${translations[language].employeekhata} - ${consumer.name}\n\n`;
+    const reportData = consumer.wasooliTransactions.map((transaction) => {
+      const date = new Date(transaction.date).toLocaleDateString();
+      const wasooli = transaction.Wasooli;
+      const source = transaction.source;
+
+      return `${translations[language].date}: ${date}, ${translations[language].sourceOfKharcha}: ${source}, ${translations[language].kharcha}: ${wasooli}`;
+    }).join("\n");
+
+    const totalBaqaya = consumer.baqaya || 0;
+    const reportFooter = `\n\n${translations[language].totalBaqaya}: ${totalBaqaya}`;
+
+    return reportHeader + reportData + reportFooter;
+  };
+
+  // Function to handle report download
+  const handleDownloadReport = (consumer) => {
+    const report = generateReport(consumer);
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `EmployeeReport_${consumer.name}_${language}.txt`);
+  };
 
   useEffect(() => {
     console.log(consumers); // Log the state to see if it includes the dates correctly
@@ -792,13 +821,22 @@ const Employee = () => {
             </button>
 
             <button
-              className="global-toggle-buttonnn"
+              className="common-button"
               onClick={() => toggleMonthYearButtonsVisibility(consumer._id)}
             >
               {monthYearButtonsVisibility[consumer._id]
                 ? translations[language].hideAll
                 : translations[language].showAll}
             </button>
+
+            <button
+            className="common-button"
+            onClick={() => handleDownloadReport(consumer)}
+          >
+            {translations[language].downloadReport}
+          </button>
+
+
           </div>
           {renderWasooliTransactions(consumer)}
 

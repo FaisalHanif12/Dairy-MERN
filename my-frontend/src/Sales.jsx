@@ -3,6 +3,7 @@ import './Sales.css';
 import { useNavigate } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
 
 // Register Chart.js components
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -92,6 +93,7 @@ const Sales = () => {
       totalExpenditureLabel: "Total Expenditure",
       totalSales: "Total Sales",
       totalExpenditure: "Total Expenditure",
+      downloadReport: "Download Report",
       totalMilkSold: "Total Sold Milk",
       profit: salesSummary.profit >= 0 ? "Total Profit" : "Total Loss",
     },
@@ -99,12 +101,31 @@ const Sales = () => {
       title: "خلاصہ فروخت",
       error: "ڈیٹا حاصل کرنے میں خرابی",
       totalSalesLabel: "کل فروخت",
+      downloadReport: "رپورٹ ڈاؤن لوڈ کریں",
       totalExpenditureLabel: "کل اخراجات",
       totalSales: "کل فروخت",
       totalExpenditure: "کل اخراجات",
       totalMilkSold: "کل فروخت شدہ دودھ",
       profit: salesSummary.profit >= 0 ? "کل منافع" : "کل نقصان",
     },
+  };
+
+  const generateReport = () => {
+    const reportHeader = `${translations[language].title}\n\n`;
+    const reportData = `
+      ${translations[language].totalSales}: ${salesSummary.total_sales || 0}\n
+      ${translations[language].totalExpenditure}: ${salesSummary.total_expenditure || 0}\n
+      ${translations[language].totalMilkSold}: ${salesSummary.total_milk_sold || 0}\n
+      ${translations[language].profit}: ${salesSummary.profit || 0}\n
+    `;
+    return reportHeader + reportData;
+  };
+
+  // Function to handle the report download
+  const handleDownloadReport = () => {
+    const report = generateReport();
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    saveAs(blob, `SalesSummary_${language}.txt`);
   };
 
   return (
@@ -130,6 +151,12 @@ const Sales = () => {
         <p className="sales-label">{translations[language].profit}</p>
         <p>{`${translations[language].profit}: ${salesSummary.profit || 0}`}</p>
       </div>
+      
+
+      <button onClick={handleDownloadReport} className="common-button">
+        {translations[language].downloadReport}
+      </button>
+
 
       {/* Chart Section */}
       <div className="chart-container">
