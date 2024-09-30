@@ -35,7 +35,6 @@ const corsOptionsDelegate = function (req, callback) {
 app.use(cors(corsOptionsDelegate));
 
 
-
 const ConsumerSale = require('./models/ConsumerSale');
 const RelativeSale = require('./models/RelativeSale');  // Make sure this line is correct
 const Expenditure = require('./models/Expenditure');
@@ -57,36 +56,46 @@ async function updateSalesSummary() {
             { $group: { _id: null, total: { $sum: "$RTotal" }, totalMilk: { $sum: "$Quantity" } } }
         ]);
 
-        // Calculate total expenditures
-        const totalExpenditures = await Expenditure.aggregate([
+        // Calculate total expenditures from Expenditure collection
+        const totalExpendituresFromExpenditure = await Expenditure.aggregate([
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
 
-        // Total sales and total milk sold calculation
-        const totalSales = (totalSalesConsumers[0]?.total || 0) + (totalSalesRelatives[0]?.total || 0);
-        const totalExpenditure = totalExpenditures[0]?.total || 0;
+        // Calculate total Wasooli from Kharchay collection
+        const totalExpendituresFromKharchays = await Kharchay.aggregate([
+            { $group: { _id: null, total: { $sum: "$Wasooli" } } }
+        ]);
 
-        // Calculate profit
+     
+        // Check if both aggregation results return values
+        const totalExpenditureFromExpenditure = totalExpendituresFromExpenditure.length > 0 ? totalExpendituresFromExpenditure[0].total : 0;
+        const totalExpenditureFromKharchays = totalExpendituresFromKharchays.length > 0 ? totalExpendituresFromKharchays[0].total : 0;
+
+        // Calculate the total expenditure by summing up values from both collections
+        const totalExpenditure = totalExpenditureFromExpenditure + totalExpenditureFromKharchays;
+
+      
+        // Calculate total sales and profit
+        const totalSales = (totalSalesConsumers[0]?.total || 0) + (totalSalesRelatives[0]?.total || 0);
         const profit = totalSales - totalExpenditure;
 
-        // Upsert the sales summary
+        // Upsert the sales summary with total_expenditure and profit
         await SalesSummary.findOneAndUpdate(
-            { summaryId: 1 },
+            { summaryId: 1 },  // Ensure we're updating the correct summary record
             {
                 total_sales: totalSales,
-                total_expenditure: totalExpenditure,  // Updated field to reflect total expenditure
+                total_expenditure: totalExpenditure,  // Combined total expenditure
                 total_milk_sold: (totalSalesConsumers[0]?.totalMilk || 0) + (totalSalesRelatives[0]?.totalMilk || 0),
                 profit: profit
             },
             { upsert: true, new: true }
         );
 
-        console.log('Sales summary successfully updated.');
+        console.log('Sales summary successfully updated with total expenditure and profit.');
     } catch (err) {
         console.error('Failed to update sales summary:', err);
     }
 }
-
 
 
 
@@ -99,10 +108,10 @@ app.get('/sales_summary', async (req, res) => {
             return res.status(404).json({ message: 'Sales summary not found' });
         }
 
-        // Return the total sales, net sales, total milk sold, and profit
+        // Return the total sales, total expenditure, total milk sold, and profit
         res.json({
             total_sales: salesSummary.total_sales,
-            net_sales: salesSummary.net_sales,
+            total_expenditure: salesSummary.total_expenditure,  // Replace net_sales with total_expenditure
             total_milk_sold: salesSummary.total_milk_sold,  // Include total milk sold
             profit: salesSummary.profit  // Include profit
         });

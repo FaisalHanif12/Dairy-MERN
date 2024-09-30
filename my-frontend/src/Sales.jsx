@@ -19,7 +19,7 @@ const Sales = () => {
         throw new Error('Network response was not ok');
       }
       const data = await response.json();
-      console.log("Fetched Sales Summary:", data);
+      console.log("Fetched Sales Summary:", data);  // Debugging log to check the received data
       setSalesSummary(data);
     } catch (error) {
       setError('Failed to fetch sales data');
@@ -32,21 +32,21 @@ const Sales = () => {
       title: "Sales Summary",
       error: "Error fetching data",
       totalSalesLabel: "Total Sales",
-      totalExpenditureLabel: "Total Expenditure", // Updated label
+      totalExpenditureLabel: "Total Expenditure",
       totalSales: "Total Sales",
-      totalExpenditure: "Total Expenditure", // Updated label
+      totalExpenditure: "Total Expenditure",
       totalMilkSold: "Total Sold Milk",
-      profit: "Total Profit"
+      profit: salesSummary.profit >= 0 ? "Total Profit" : "Total Loss",  // Dynamically switch to "Total Loss"
     },
     Urdu: {
       title: "خلاصہ فروخت",
       error: "ڈیٹا حاصل کرنے میں خرابی",
       totalSalesLabel: "کل فروخت",
-      totalExpenditureLabel: "کل اخراجات", // Updated Urdu label
+      totalExpenditureLabel: "کل اخراجات",
       totalSales: "کل فروخت",
-      totalExpenditure: "کل اخراجات", // Updated Urdu label
+      totalExpenditure: "کل اخراجات",
       totalMilkSold: "کل فروخت شدہ دودھ",
-      profit: "منافع"
+      profit: salesSummary.profit >= 0 ? "کل منافع" : "کل نقصان"  // Dynamically switch to "Total Loss"
     }
   };
 
@@ -61,17 +61,19 @@ const Sales = () => {
       </button>
       {error && <p className="error">{translations[language].error}</p>}
       <div className="sales-summary">
-        <p className="sales-label">{translations[language].totalSalesLabel}</p>
-        <p>{`${translations[language].totalSales}: ${salesSummary.total_sales || 0}`}</p>
-
-        <p className="sales-label">{translations[language].totalExpenditureLabel}</p> {/* Updated */}
-        <p>{`${translations[language].totalExpenditure}: ${salesSummary.net_sales || 0}`}</p> {/* Updated */}
 
         <p className="sales-label">{translations[language].totalMilkSold}</p>
         <p>{`${translations[language].totalMilkSold}: ${salesSummary.total_milk_sold || 0}`}</p>
 
+        <p className="sales-label">{translations[language].totalSalesLabel}</p>
+        <p>{`${translations[language].totalSales}: ${salesSummary.total_sales || 0}`}</p>
+
+        <p className="sales-label">{translations[language].totalExpenditureLabel}</p>
+        <p>{`${translations[language].totalExpenditure}: ${salesSummary.total_expenditure || 0}`}</p>
+
         <p className="sales-label">{translations[language].profit}</p>
         <p>{`${translations[language].profit}: ${salesSummary.profit || 0}`}</p>
+
       </div>
     </div>
   );
