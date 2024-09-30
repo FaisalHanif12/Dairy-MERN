@@ -202,11 +202,11 @@
 }
 
 .update-buttonn {
-  background-color: #f39c12;
+  background-color: #dc3545;
 }
 
 .update-buttonn:hover {
-  background-color: #d98c10;
+  background-color: #dc3545;
 }
 
 .delete-button {
@@ -229,8 +229,7 @@
   font-size: 24px;
   margin-bottom: 20px;
 }
-
-.form-container.wasooli-card input[type="date"],
+.update-buttonn.form-container.wasooli-card input[type="date"],
 .form-container.wasooli-card input[type="number"] {
   width: 100%;
   padding: 10px;

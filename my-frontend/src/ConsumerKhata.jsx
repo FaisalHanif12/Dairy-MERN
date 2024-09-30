@@ -112,7 +112,7 @@ const ConsumerKhata = () => {
       confirmAddConsumer: "کیا آپ واقعی نیا صارف شامل کرنا چاہتے ہیں؟",
       yes: "جی ہاں",
       no: "نہیں",
-      Khata: "خاتہ",
+      Khata: "خاتہ", 
       Show: "دکھائیں",
       Hide: "چھپائیں",
       deleteWasooliConfirm: "کیا آپ واقعی اس وصولی کو حذف کرنا چاہتے ہیں؟",
@@ -792,7 +792,7 @@ const ConsumerKhata = () => {
             >
               {translations[language].manage}
             </button>
-            <button
+            {/* <button
               className="add-baqaya-buttonn"
               onClick={() => {
                 setIsAddBaqayaVisible(true);
@@ -800,7 +800,7 @@ const ConsumerKhata = () => {
               }}
             >
               {translations[language].addBaqaya}
-            </button>
+            </button> */}
             <button
               className="update-buttonn"
               onClick={() => handleUpdateClick(consumer._id)}

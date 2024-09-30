@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./ConsumersDales.css";
 import { useNavigate } from "react-router-dom";
-import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+import { saveAs } from "file-saver"; // Import file-saver to handle file downloads
 
 const ConsumersDales = () => {
   const navigate = useNavigate();
@@ -18,25 +18,7 @@ const ConsumersDales = () => {
   const [language, setLanguage] = useState("English"); // Default to English
   const [showModal, setShowModal] = useState(false); // You already have this for controlling the visibility of the modal
   const [modalMessage, setModalMessage] = useState(""); // Add this line to manage the modal message
-  const [uniqueNames, setUniqueNames] = useState([]);
-  const [filteredNames, setFilteredNames] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  // Fetch unique names from the backend when the component mounts
-  useEffect(() => {
-    fetchUniqueNames();
-  }, []);
-
-  // Fetch unique names from the backend API
-  const fetchUniqueNames = async () => {
-    try {
-      const response = await fetch("http://localhost:3001/unique-names");
-      const data = await response.json();
-      setUniqueNames(data);
-    } catch (error) {
-      console.error("Error fetching unique names:", error);
-    }
-  };
+  const [consumerNames, setConsumerNames] = useState([]);
 
   const translations = {
     English: {
@@ -120,6 +102,26 @@ const ConsumersDales = () => {
     December: "دسمبر",
   };
 
+  const fetchConsumerNames = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/consumerkhata"); // Update with correct API endpoint
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const consumersData = await response.json();
+      // Extract names from the response data and update the state
+      const names = consumersData.map((consumer) => consumer.name);
+      setConsumerNames(names);
+    } catch (error) {
+      console.error("There was an error fetching the consumer names:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch consumer names on component mount
+    fetchConsumerNames();
+  }, []);
+
   const fetchData = async () => {
     try {
       const response = await fetch("http://localhost:3001/consumerssale", {
@@ -168,23 +170,25 @@ const ConsumersDales = () => {
 
   // ... rest of your component
 
-
   const generateReport = () => {
-    const reportData = expenses.map((expense) => {
-      const date = new Date(expense.Date).toLocaleDateString();
-      const name = expense.Name;
-      const quantity = expense.Quantity;
-      const unitPrice = expense.UnitPrice;
-      const total = expense.Total;
+    const reportData = expenses
+      .map((expense) => {
+        const date = new Date(expense.Date).toLocaleDateString();
+        const name = expense.Name;
+        const quantity = expense.Quantity;
+        const unitPrice = expense.UnitPrice;
+        const total = expense.Total;
 
-      return language === "English"
-        ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
-        : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
-    }).join("\n");
+        return language === "English"
+          ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
+          : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
+      })
+      .join("\n");
 
-    const reportHeader = language === "English"
-      ? `${translations[language].title}\n\n`
-      : `${translations[language].title}\n\n`;
+    const reportHeader =
+      language === "English"
+        ? `${translations[language].title}\n\n`
+        : `${translations[language].title}\n\n`;
 
     return reportHeader + reportData;
   };
@@ -263,95 +267,208 @@ const ConsumersDales = () => {
     return acc;
   }, {});
 
+  const updateBaqaya = async (consumerName, totalAmount) => {
+    try {
+      // Fetch the consumer's data from ConsumerKhata using the consumer's name
+      const response = await fetch(
+        `http://localhost:3001/consumerkhata?name=${encodeURIComponent(
+          consumerName
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error fetching consumer data for ${consumerName}`);
+      }
+
+      const consumerData = await response.json();
+
+      // Find a matching consumer based on the name
+      const matchingConsumer = consumerData.find(
+        (consumer) => consumer.name.toLowerCase() === consumerName.toLowerCase()
+      );
+
+      if (!matchingConsumer) {
+        console.error(`No consumer found with the name ${consumerName}`);
+        return; // No match, so no update
+      }
+
+      // Update the Baqaya of the matching consumer
+      const updatedBaqaya =
+        (parseFloat(matchingConsumer.baqaya) || 0) + totalAmount;
+
+      // Now update the baqaya for this consumer
+      const updateResponse = await fetch(
+        `http://localhost:3001/consumerkhata/${matchingConsumer._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ...matchingConsumer, baqaya: updatedBaqaya }),
+        }
+      );
+
+      if (!updateResponse.ok) {
+        throw new Error(`Error updating Baqaya for ${consumerName}`);
+      }
+
+      console.log(`Baqaya updated successfully for ${consumerName}`);
+    } catch (error) {
+      console.error("Error updating Baqaya:", error);
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
-
+  
+    // Ensure required fields are filled
+    if (!source || !quantity || !amount) {
+      console.error("Missing required fields.");
+      return;
+    }
+  
     const expensePayload = {
       Date: date,
       Name: source,
       Quantity: parseFloat(quantity),
       UnitPrice: parseFloat(amount),
     };
-
+  
+    // Calculate total price
+    const total = parseFloat(quantity) * parseFloat(amount);
+  
     try {
       let response;
-
+  
       if (editIndex >= 0) {
-        // Assuming your expense objects use 'idConsumersSale' as the key for ID
-        const expenseId =
-          expenses[editIndex]?._id || expenses[editIndex]?.idConsumersSale; // Ensure it checks both _id and idConsumersSale
-
-        if (!expenseId) {
-          throw new Error("No valid ID found for the selected sale.");
-        }
-
+        // This means we're updating an existing sale
+        const previousExpense = expenses[editIndex]; // Get the existing data before the update
+        const previousTotal = parseFloat(previousExpense.Quantity) * parseFloat(previousExpense.UnitPrice); // Calculate previous total
+  
         // PUT request to update an existing expense
-        response = await fetch(
-          `http://localhost:3001/consumerssale/${expenseId}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(expensePayload),
-          }
-        );
-
-        const alertMessage = `${translations[language].record}`;
-
-        // Show modal with the alert message
-        setModalMessage(alertMessage);
-        setShowModal(true);
+        const expenseId = previousExpense._id || previousExpense.idConsumersSale; // Get the correct ID
+        response = await fetch(`http://localhost:3001/consumerssale/${expenseId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(expensePayload),
+        });
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+  
+        // If the consumer's name has changed, adjust baqaya for both old and new consumers
+        if (previousExpense.Name !== source) {
+          console.log("Consumer name changed, updating both consumers.");
+  
+          // Step 1: Adjust baqaya for the previous consumer
+          await updateBaqaya(previousExpense.Name, -previousTotal);
+  
+          // Step 2: Adjust baqaya for the new consumer
+          await updateBaqaya(source, total);
+        } else {
+          // If only the quantity or price changed, update baqaya accordingly
+          console.log("Consumer name unchanged, adjusting baqaya for the same consumer.");
+          await updateBaqaya(source, total - previousTotal); // Adjust the difference between the old and new total
+        }
+  
+        // Show alert for successful update
+        const alertMessage = `Sale for ${previousExpense.Name} has been updated.`;
+        setModalMessage(alertMessage);  // Show modal with update message
+        setShowModal(true);  // Display modal
+  
+        console.log("Sale updated successfully");
       } else {
-        // POST request to add a new expense (remains unchanged)
+        // This means we're adding a new sale (POST request)
         response = await fetch("http://localhost:3001/consumerssale", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
         });
-
-        const monthYear = new Date(date).toLocaleString("default", {
-          month: "long",
-          year: "numeric",
-        });
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+  
         const alertMessage = `${quantity} ${translations[language].KiloMilk} ${translations[language].added}`;
-
-        // Show modal with added message
         setModalMessage(alertMessage);
         setShowModal(true);
+  
+        // Call the function to update Baqaya for the new sale
+        await updateBaqaya(source, total);
       }
-
-      // Check for response errors
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Fetch updated data after saving
+  
+      // Refresh data after saving
       await fetchData();
-
-      // Reset form fields and editIndex
+  
+      // Reset form fields and clear editIndex to signify we're no longer editing
       setSource("");
       setQuantity("");
       setAmount("");
       setEditIndex(-1);
     } catch (error) {
-      console.error("There was an error saving the sale:", error);
+      console.error("There was an error saving or updating the sale:", error);
     }
   };
 
-  // This function is called when the delete button is clicked.
-  // It sets up the alert and marks which item should be deleted if confirmed.
+  
   const handleDelete = (index) => {
     setShowAlert(true);
     setDeleteIndex(index);
   };
 
-  // This function is called when the user confirms the deletion.
   const handleAlertConfirm = async (isConfirmed) => {
     if (isConfirmed && deleteIndex != null) {
       const expense = expenses[deleteIndex];
       if (expense && expense._id) {
-        // Use _id as it's the correct field for MongoDB documents
         try {
-          const response = await fetch(
+          // Step 1: Fetch the consumer's data from ConsumerKhata using the consumer's name (expense.Name)
+          const consumerResponse = await fetch(
+            `http://localhost:3001/consumerkhata?name=${encodeURIComponent(expense.Name)}`
+          );
+          
+          if (!consumerResponse.ok) {
+            throw new Error(`Error fetching consumer data for ${expense.Name}`);
+          }
+  
+          const consumerData = await consumerResponse.json();
+  
+          // Step 2: Ensure we are matching the correct consumer based on the name and other properties
+          const consumer = consumerData.find(
+            (c) => c.name === expense.Name // Match consumer exactly by name
+          );
+  
+          if (!consumer) {
+            console.error(`No exact consumer match found for ${expense.Name}`);
+            return;
+          }
+  
+          // Step 3: Calculate the sale amount and update the baqaya
+          const saleAmount = parseFloat(expense.Quantity) * parseFloat(expense.UnitPrice);
+          const updatedBaqaya = (parseFloat(consumer.baqaya) || 0) - saleAmount;
+  
+          console.log(`Updating baqaya for ${consumer.name}, sale amount: ${saleAmount}, new baqaya: ${updatedBaqaya}`);
+  
+          // Step 4: Update the consumer's baqaya
+          const updateResponse = await fetch(
+            `http://localhost:3001/consumerkhata/${consumer._id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ ...consumer, baqaya: updatedBaqaya }),
+            }
+          );
+  
+          if (!updateResponse.ok) {
+            throw new Error(`Error updating baqaya for ${expense.Name}`);
+          }
+  
+          console.log(`Baqaya updated successfully for ${expense.Name}`);
+  
+          // Step 5: Delete the sale from the consumerssale collection
+          const deleteResponse = await fetch(
             `http://localhost:3001/consumerssale/${expense._id}`,
             {
               method: "DELETE",
@@ -360,28 +477,29 @@ const ConsumersDales = () => {
               },
             }
           );
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+  
+          if (!deleteResponse.ok) {
+            throw new Error(`HTTP error! status: ${deleteResponse.status}`);
           }
-
-          const result = await response.json();
+  
+          const result = await deleteResponse.json();
           console.log(result.message); // Log the message from the backend
-
-          // Refresh the expenses list after deleting an expense
+  
+          // Step 6: Refresh the expenses list after deleting an expense
           await fetchData();
         } catch (error) {
-          console.error("There was an error deleting the sale:", error);
+          console.error("There was an error deleting the sale or updating baqaya:", error);
         }
       } else {
         console.error("Attempted to delete an expense without a valid ID");
       }
     }
-
+  
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
   };
+  
 
   const getMonthlyExpenses = () => {
     const monthlyExpenses = expenses.reduce((acc, expense) => {
@@ -482,25 +600,23 @@ const ConsumersDales = () => {
         <label htmlFor="source" className="expenditure-label">
           {translations[language].name}:
         </label>
-        <input
-          type="text"
+        <select
           id="source"
-          list="consumerNames"
           value={source}
-          onChange={(e) => setSource(e.target.value)} // This updates the source when the user types or selects
+          onChange={(e) => setSource(e.target.value)} // This updates the source when the user selects an option
           className="expenditure-input"
-          placeholder="Enter Consumer Name"
-        />
-
-        <datalist id="consumerNames">
-          {uniqueNames.length > 0 ? (
-            uniqueNames.map((name, index) => (
-              <option key={index} value={name} />
-            ))
-          ) : (
-            <option value="No names available" />
-          )}
-        </datalist>
+          required // Makes sure the user selects an option
+        >
+          <option value="" disabled>
+            Select Consumer Name
+          </option>{" "}
+          {/* Default option */}
+          {consumerNames.map((name, index) => (
+            <option key={index} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
 
         <label htmlFor="quantity" className="expenditure-label">
           {translations[language].quantity}:

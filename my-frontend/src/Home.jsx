@@ -60,7 +60,7 @@ const Home = () => {
         </div>
         <div className="card" onClick={() => handleNavigation("/sales")}>
           <h3 className="card-title">
-            {isUrdu ? "کل فروخت" : "Overall Sales"}
+          {isUrdu ? "کل رپورٹ" : "Overall Report"}
           </h3>
         </div>
       </div>
