@@ -104,7 +104,7 @@ const ConsumersDales = () => {
 
   const fetchConsumerNames = async () => {
     try {
-      const response = await fetch("http://localhost:3001/consumerkhata"); // Update with correct API endpoint
+      const response = await fetch("https://dairy-mern-1.onrender.com//consumerkhata"); // Update with correct API endpoint
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -124,7 +124,7 @@ const ConsumersDales = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:3001/consumerssale", {
+      const response = await fetch("https://dairy-mern-1.onrender.com//consumerssale", {
         headers: {
           Accept: "application/json",
         },
@@ -271,7 +271,7 @@ const ConsumersDales = () => {
     try {
       // Fetch the consumer's data from ConsumerKhata using the consumer's name
       const response = await fetch(
-        `http://localhost:3001/consumerkhata?name=${encodeURIComponent(
+        `https://dairy-mern-1.onrender.com//consumerkhata?name=${encodeURIComponent(
           consumerName
         )}`
       );
@@ -298,7 +298,7 @@ const ConsumersDales = () => {
 
       // Now update the baqaya for this consumer
       const updateResponse = await fetch(
-        `http://localhost:3001/consumerkhata/${matchingConsumer._id}`,
+        `https://dairy-mern-1.onrender.com//consumerkhata/${matchingConsumer._id}`,
         {
           method: "PUT",
           headers: {
@@ -347,7 +347,7 @@ const ConsumersDales = () => {
   
         // PUT request to update an existing expense
         const expenseId = previousExpense._id || previousExpense.idConsumersSale; // Get the correct ID
-        response = await fetch(`http://localhost:3001/consumerssale/${expenseId}`, {
+        response = await fetch(`https://dairy-mern-1.onrender.com//consumerssale/${expenseId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -380,7 +380,7 @@ const ConsumersDales = () => {
         console.log("Sale updated successfully");
       } else {
         // This means we're adding a new sale (POST request)
-        response = await fetch("http://localhost:3001/consumerssale", {
+        response = await fetch("https://dairy-mern-1.onrender.com//consumerssale", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -424,7 +424,7 @@ const ConsumersDales = () => {
         try {
           // Step 1: Fetch the consumer's data from ConsumerKhata using the consumer's name (expense.Name)
           const consumerResponse = await fetch(
-            `http://localhost:3001/consumerkhata?name=${encodeURIComponent(expense.Name)}`
+            `https://dairy-mern-1.onrender.com/consumerkhata?name=${encodeURIComponent(expense.Name)}`
           );
           
           if (!consumerResponse.ok) {
