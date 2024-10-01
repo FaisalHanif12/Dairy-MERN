@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core'; // Import Capacitor to detect platform
 import Home from './Home'; 
 import ConsumersSales from './ConsumersDales'; 
 import RelativesKhata from './RelativesKhata'; 
@@ -29,7 +30,7 @@ function App() {
       // Cancel any previous notifications to avoid duplicates (optional)
       await LocalNotifications.cancelAll();
 
-      // Schedule notifications for 11 AM and 5 PM daily
+      // Schedule notifications for 11 AM, 5 PM, and 7 PM with an image and persistent notifications
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -44,6 +45,13 @@ function App() {
                 minute: 0,
               },
             },
+            attachments: [
+              {
+                id: 'milk-image',
+                url: '/Images/cowemoji.jpeg', // Relative path to your local image
+              },
+            ],
+            ongoing: true, // Make notification persistent (sticky)
           },
           {
             title: 'Reminder',
@@ -57,11 +65,38 @@ function App() {
                 minute: 0,
               },
             },
+            attachments: [
+              {
+                id: 'milk-image',
+                url: '/Images/cowemoji.jpeg',
+              },
+            ],
+            ongoing: true, // Make notification persistent (sticky)
+          },
+          {
+            title: 'Reminder',
+            body: 'Please collect the wasooli from consumers.',
+            id: 3,
+            schedule: {
+              repeats: true,
+              every: 'day',
+              on: {
+                hour: 19,
+                minute: 0,
+              },
+            },
+            attachments: [
+              {
+                id: 'collection-image',
+                url: '/Images/cowemoji.jpeg', // Image for the 7 PM reminder
+              },
+            ],
+            ongoing: true, // Make notification persistent (sticky)
           },
         ],
       });
 
-      console.log('Notifications scheduled for 11 AM and 5 PM');
+      console.log('Notifications scheduled for 11 AM, 5 PM, and 7 PM');
     } catch (error) {
       console.error('Error scheduling notifications:', error);
     }
