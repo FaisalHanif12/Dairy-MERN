@@ -1,0 +1,6 @@
+{
+  "appId": "com.techxelo.dairyapp",
+  "appName": "Maher Dairy",
+  "webDir": "my-frontend/build",  
+  "bundledWebRuntime": false
+}
