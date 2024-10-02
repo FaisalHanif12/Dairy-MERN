@@ -20,20 +20,26 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001' , 'https://maher-dairy.vercel.app' , 
-  'https://dairy-mern-1.onrender.com'];
-const corsOptionsDelegate = function (req, callback) {
-  let corsOptions;
-  let isDomainAllowed = allowedOrigins.includes(req.header('Origin'));
-  if (isDomainAllowed) {
-    corsOptions = { origin: true };
-  } else {
-    corsOptions = { origin: false };
-  }
-  callback(null, corsOptions);
-};
-
-app.use(cors(corsOptionsDelegate));
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://maher-dairy.vercel.app',
+    'https://dairy-mern-1.onrender.com'
+  ];
+  
+  const corsOptionsDelegate = function (req, callback) {
+    let corsOptions;
+    let isDomainAllowed = allowedOrigins.includes(req.header('Origin'));
+    if (isDomainAllowed) {
+      corsOptions = { origin: true };
+    } else {
+      corsOptions = { origin: false }; // Disable CORS for this request
+    }
+    callback(null, corsOptions); // Pass the options to the callback
+  };
+  
+  // Load CORS before any routes
+  app.use(cors(corsOptionsDelegate));
 
 
 const ConsumerSale = require('./models/ConsumerSale');
