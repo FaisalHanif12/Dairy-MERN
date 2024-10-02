@@ -52,6 +52,7 @@ const ConsumersDales = () => {
       added: "has been added",
       In: "In",
       record: "Record has been updated",
+      placeholder: "Select the Consumer Name",
     },
     Urdu: {
       title: "صارفین کی فروخت",
@@ -84,6 +85,7 @@ const ConsumersDales = () => {
       added: " شامل ہوگیا ہے",
       In: "میں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
+      placeholder: "صارف کا نام منتخب کریں",
     },
   };
 
@@ -104,7 +106,7 @@ const ConsumersDales = () => {
 
   const fetchConsumerNames = async () => {
     try {
-      const response = await fetch("https://dairy-mern-1.onrender.com/consumerkhata"); // Update with correct API endpoint
+      const response = await fetch("https://dairy-mern-2.onrender.com/consumerkhata"); // Update with correct API endpoint
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -124,7 +126,7 @@ const ConsumersDales = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("https://dairy-mern-1.onrender.com/consumerssale", {
+      const response = await fetch("https://dairy-mern-2.onrender.com/consumerssale", {
         headers: {
           Accept: "application/json",
         },
@@ -271,7 +273,7 @@ const ConsumersDales = () => {
     try {
       // Fetch the consumer's data from ConsumerKhata using the consumer's name
       const response = await fetch(
-        `https://dairy-mern-1.onrender.com/consumerkhata?name=${encodeURIComponent(
+        `https://dairy-mern-2.onrender.com/consumerkhata?name=${encodeURIComponent(
           consumerName
         )}`
       );
@@ -298,7 +300,7 @@ const ConsumersDales = () => {
 
       // Now update the baqaya for this consumer
       const updateResponse = await fetch(
-        `https://dairy-mern-1.onrender.com/consumerkhata/${matchingConsumer._id}`,
+        `https://dairy-mern-2.onrender.com/consumerkhata/${matchingConsumer._id}`,
         {
           method: "PUT",
           headers: {
@@ -347,7 +349,7 @@ const ConsumersDales = () => {
   
         // PUT request to update an existing expense
         const expenseId = previousExpense._id || previousExpense.idConsumersSale; // Get the correct ID
-        response = await fetch(`https://dairy-mern-1.onrender.com/consumerssale/${expenseId}`, {
+        response = await fetch(`https://dairy-mern-2.onrender.com/consumerssale/${expenseId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -380,7 +382,7 @@ const ConsumersDales = () => {
         console.log("Sale updated successfully");
       } else {
         // This means we're adding a new sale (POST request)
-        response = await fetch("https://dairy-mern-1.onrender.com/consumerssale", {
+        response = await fetch("https://dairy-mern-2.onrender.com/consumerssale", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -424,7 +426,7 @@ const ConsumersDales = () => {
         try {
           // Step 1: Fetch the consumer's data from ConsumerKhata using the consumer's name (expense.Name)
           const consumerResponse = await fetch(
-            `https://dairy-mern-1.onrender.com/consumerkhata?name=${encodeURIComponent(expense.Name)}`
+            `https://dairy-mern-2.onrender.com/consumerkhata?name=${encodeURIComponent(expense.Name)}`
           );
           
           if (!consumerResponse.ok) {
@@ -451,7 +453,7 @@ const ConsumersDales = () => {
   
           // Step 4: Update the consumer's baqaya
           const updateResponse = await fetch(
-            `http://localhost:3001/consumerkhata/${consumer._id}`,
+            `https://dairy-mern-2.onrender.com/consumerkhata/${consumer._id}`,
             {
               method: "PUT",
               headers: {
@@ -469,7 +471,7 @@ const ConsumersDales = () => {
   
           // Step 5: Delete the sale from the consumerssale collection
           const deleteResponse = await fetch(
-            `http://localhost:3001/consumerssale/${expense._id}`,
+            `https://dairy-mern-2.onrender.com/consumerssale/${expense._id}`,
             {
               method: "DELETE",
               headers: {
@@ -608,7 +610,7 @@ const ConsumersDales = () => {
           required // Makes sure the user selects an option
         >
           <option value="" disabled>
-            Select Consumer Name
+          {translations[language].placeholder}
           </option>{" "}
           {/* Default option */}
           {consumerNames.map((name, index) => (
