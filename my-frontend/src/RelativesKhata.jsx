@@ -36,7 +36,7 @@ const RelativesKhata = () => {
  
   const fetchUniqueNames = async () => {
     try {
-      const response = await fetch("http://localhost:3001/unique-namesr");
+      const response = await fetch("https://dairy-mern-1.onrender.com/unique-namesr");
       const data = await response.json();
       setUniqueNames(data);
     } catch (error) {
@@ -123,7 +123,7 @@ const RelativesKhata = () => {
   };
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:3001/relatives");
+      const response = await fetch("https://dairy-mern-1.onrender.com/relatives");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -245,7 +245,7 @@ const RelativesKhata = () => {
       if (editIndex >= 0) {
         // Use the '_id' property of MongoDB instead of 'idRelatives'
         const expenseId = expenses[editIndex]._id; // Adjust to MongoDB _id field
-        response = await fetch(`http://localhost:3001/relatives/${expenseId}`, {
+        response = await fetch(`https://dairy-mern-1.onrender.com/relatives/${expenseId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -259,7 +259,7 @@ const RelativesKhata = () => {
         setShowModal(true);
       } else {
         // Adding a new expense logic
-        response = await fetch("http://localhost:3001/relatives", {
+        response = await fetch("https://dairy-mern-1.onrender.com/relatives", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -306,7 +306,7 @@ const RelativesKhata = () => {
         // Assuming the ID field in MongoDB is '_id'
         try {
           const response = await fetch(
-            `http://localhost:3001/relatives/${expense._id}`,
+            `https://dairy-mern-1.onrender.com/relatives/${expense._id}`,
             {
               method: "DELETE",
               headers: {

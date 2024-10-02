@@ -20,7 +20,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001' , 'https://cute-duckanoo-9a5d9d.netlify.app', // Your deployed Netlify frontend
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001' , , 
   'https://dairy-mern-1.onrender.com'];
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
