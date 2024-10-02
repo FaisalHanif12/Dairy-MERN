@@ -20,7 +20,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001' , 'https://cute-duckanoo-9a5d9d.netlify.app', // Your deployed Netlify frontend
+  'https://dairy-mern-1.onrender.com'];
 const corsOptionsDelegate = function (req, callback) {
   let corsOptions;
   let isDomainAllowed = allowedOrigins.includes(req.header('Origin'));
@@ -299,7 +300,6 @@ app.post("/expenditure", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 
 app.post("/relatives", async (req, res) => {
