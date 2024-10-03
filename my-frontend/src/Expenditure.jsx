@@ -32,7 +32,7 @@ const Expenditure = () => {
 
   const fetchUniqueNames = async () => {
     try {
-      const response = await fetch("http://localhost:3001/unique-namese");
+      const response = await fetch("https://dairy-mern-2.onrender.com/unique-namese");
       const data = await response.json();
       setUniqueNames(data);
     } catch (error) {
@@ -66,8 +66,9 @@ const Expenditure = () => {
       enterSource: "Enter source expense ",
       enterAmount: "Enter amount of Expense",
       expens: "Expense",
-
-      record: "Record has been updated",
+      record:" Record has been updated",
+      transcation: "Detailed Transactions",
+      monthlye: "Monthly Expense Summary",
     },
     Urdu: {
       title: "خرچے کا حساب",
@@ -95,7 +96,9 @@ const Expenditure = () => {
       expens: "اخراجات",
       download: "رپورٹ ڈاؤن لوڈ کریں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
-    },
+      transcation: "تفصیلی لین دین",
+      monthlye: "ماہانہ اخراجات کا خلاصہ" ,
+   },
   };
 
   const monthTranslations = {
@@ -114,7 +117,7 @@ const Expenditure = () => {
   };
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:3001/expenditure");
+      const response = await fetch("https://dairy-mern-2.onrender.com/expenditure");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -133,28 +136,41 @@ const Expenditure = () => {
     fetchData();
   }, []);
 
-   
   const generateReport = () => {
-    const reportData = expenses
-      .map((expense) => {
+    // Detailed entries for each expenditure
+    const reportData = expenses.map((expense) => {
         const date = new Date(expense.Date).toLocaleDateString();
         const source = expense.source;
-        const amount = expense.amount;
+        const amount = expense.amount; // Ensure the amount is formatted to two decimal places
 
         return language === "English"
           ? `Date: ${date}, Source: ${source}, Amount: ${amount}`
           : `تاریخ: ${date}, خرچے کا ذریعہ: ${source}, رقم: ${amount}`;
-      })
-      .join("\n");
+    }).join("\n");
 
-    const reportHeader =
-      language === "English"
+    // Monthly expenditures summary
+    const monthlyExpenses = getMonthlyExpenses();
+    const monthlyReport = Object.entries(monthlyExpenses).map(([monthYear, total]) => {
+        return language === "English"
+          ? `${monthYear}: Total Expenditure = ${total}`
+          : `${monthYear}: کل خرچ = ${total}`;
+    }).join("\n");
+
+    // Overall expenditures
+    const overallExpenses = getOverallExpenses();
+    const overallReport = language === "English"
+        ? `Overall Expenditures: Total = ${overallExpenses}`
+        : `کل خرچے: مجموعی = ${overallExpenses}`;
+
+    // Assemble the full report
+    const reportHeader = language === "English"
         ? `${translations[language].title}\n\n`
         : `${translations[language].title}\n\n`;
 
-    return reportHeader + reportData;
-  };
-
+    const fullReport = `${reportHeader} ${translations[language].transcation}\n${reportData}\n\n${translations[language].monthlye}\n${monthlyReport}\n\n${overallReport}`;
+    return fullReport;
+}; 
+  
   const handleDownloadReport = () => {
     const report = generateReport();
     const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
@@ -233,7 +249,7 @@ const Expenditure = () => {
         // Assuming your expense objects use MongoDB's _id as the key for ID
         const expenseId = expenses[editIndex]._id; // Use the _id field for MongoDB documents
         response = await fetch(
-          `http://localhost:3001/expenditure/${expenseId}`,
+          `https://dairy-mern-2.onrender.com/expenditure/${expenseId}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -252,7 +268,7 @@ const Expenditure = () => {
         setShowModal(true);
       } else {
         // Adding a new expense
-        response = await fetch("http://localhost:3001/expenditure", {
+        response = await fetch("https://dairy-mern-2.onrender.com/expenditure", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(expensePayload),
@@ -322,7 +338,7 @@ const Expenditure = () => {
           console.log("Attempting to delete expense with ID:", expense._id); // Debugging log
 
           const response = await fetch(
-            `http://localhost:3001/expenditure/${expense._id}`,
+            `https://dairy-mern-2.onrender.com/expenditure/${expense._id}`,
             {
               method: "DELETE",
               headers: {

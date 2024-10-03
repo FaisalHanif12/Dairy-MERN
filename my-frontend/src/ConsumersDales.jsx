@@ -53,6 +53,8 @@ const ConsumersDales = () => {
       In: "In",
       record: "Record has been updated",
       placeholder: "Select the Consumer Name",
+      transcation: "Detailed Transactions",
+      monthlye: "Monthly Expense Summary",
     },
     Urdu: {
       title: "صارفین کی فروخت",
@@ -86,6 +88,8 @@ const ConsumersDales = () => {
       In: "میں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
       placeholder: "صارف کا نام منتخب کریں",
+      transcation: "تفصیلی لین دین",
+      monthlye: "ماہانہ اخراجات کا خلاصہ",
     },
   };
 
@@ -106,7 +110,9 @@ const ConsumersDales = () => {
 
   const fetchConsumerNames = async () => {
     try {
-      const response = await fetch("https://dairy-mern-2.onrender.com/consumerkhata"); // Update with correct API endpoint
+      const response = await fetch(
+        "https://dairy-mern-2.onrender.com/consumerkhata"
+      ); // Update with correct API endpoint
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -126,11 +132,14 @@ const ConsumersDales = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("https://dairy-mern-2.onrender.com/consumerssale", {
-        headers: {
-          Accept: "application/json",
-        },
-      });
+      const response = await fetch(
+        "https://dairy-mern-2.onrender.com/consumerssale",
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -171,10 +180,9 @@ const ConsumersDales = () => {
   }, []); // The empty dependency array ensures this runs only on mount
 
   // ... rest of your component
-
   const generateReport = () => {
-    const reportData = expenses
-      .map((expense) => {
+    // Generate individual transaction details
+    const reportData = expenses.map((expense) => {
         const date = new Date(expense.Date).toLocaleDateString();
         const name = expense.Name;
         const quantity = expense.Quantity;
@@ -184,16 +192,32 @@ const ConsumersDales = () => {
         return language === "English"
           ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
           : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
-      })
-      .join("\n");
+    }).join("\n\n"); // Ensure spacing between each transaction
 
-    const reportHeader =
-      language === "English"
-        ? `${translations[language].title}\n\n`
-        : `${translations[language].title}\n\n`;
+    // Calculate and format monthly sales
+    const monthlyExpenses = getMonthlyExpenses();
+    const monthlyReport = Object.entries(monthlyExpenses).map(([monthYear, total]) => {
+        return language === "English"
+          ? `${monthYear}: Total Sales = ${total}`
+          : `${monthYear}: کل فروخت = ${total}`;
+    }).join("\n\n"); // Ensure spacing between each month's summary
 
-    return reportHeader + reportData;
-  };
+    // Calculate and format overall sales
+    const overallExpenses = getOverallExpenses();
+    const overallReport = language === "English"
+        ? `Overall Sales: Total = ${overallExpenses}`
+        : `کل فروخت: مجموعی = ${overallExpenses}`;
+
+    // Assemble the full report with headings and all entries, ensuring line breaks after headers
+    const reportHeader = `${translations[language].title}\n\n`;
+    const detailedTransactionsHeader = language === "English" ? "Detailed Transactions:\n\n" : "معاملات کی تفصیل:\n\n";
+    const monthlySummaryHeader = language === "English" ? "Monthly Expense Summary:\n\n" : "ماہانہ اخراجات کا خلاصہ:\n\n";
+    const overallSummaryHeader = language === "English" ? "Overall Sales Summary:\n\n" : "کل فروخت کا خلاصہ:\n\n";
+
+    const fullReport = `${reportHeader}${detailedTransactionsHeader}${reportData}\n\n${monthlySummaryHeader}${monthlyReport}\n\n${overallSummaryHeader}${overallReport}`;
+
+    return fullReport;
+};
 
   // Handle download report
   const handleDownloadReport = () => {
@@ -322,87 +346,98 @@ const ConsumersDales = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-  
+
     // Ensure required fields are filled
     if (!source || !quantity || !amount) {
       console.error("Missing required fields.");
       return;
     }
-  
+
     const expensePayload = {
       Date: date,
       Name: source,
       Quantity: parseFloat(quantity),
       UnitPrice: parseFloat(amount),
     };
-  
+
     // Calculate total price
     const total = parseFloat(quantity) * parseFloat(amount);
-  
+
     try {
       let response;
-  
+
       if (editIndex >= 0) {
         // This means we're updating an existing sale
         const previousExpense = expenses[editIndex]; // Get the existing data before the update
-        const previousTotal = parseFloat(previousExpense.Quantity) * parseFloat(previousExpense.UnitPrice); // Calculate previous total
-  
+        const previousTotal =
+          parseFloat(previousExpense.Quantity) *
+          parseFloat(previousExpense.UnitPrice); // Calculate previous total
+
         // PUT request to update an existing expense
-        const expenseId = previousExpense._id || previousExpense.idConsumersSale; // Get the correct ID
-        response = await fetch(`https://dairy-mern-2.onrender.com/consumerssale/${expenseId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(expensePayload),
-        });
-  
+        const expenseId =
+          previousExpense._id || previousExpense.idConsumersSale; // Get the correct ID
+        response = await fetch(
+          `https://dairy-mern-2.onrender.com/consumerssale/${expenseId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(expensePayload),
+          }
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-  
+
         // If the consumer's name has changed, adjust baqaya for both old and new consumers
         if (previousExpense.Name !== source) {
           console.log("Consumer name changed, updating both consumers.");
-  
+
           // Step 1: Adjust baqaya for the previous consumer
           await updateBaqaya(previousExpense.Name, -previousTotal);
-  
+
           // Step 2: Adjust baqaya for the new consumer
           await updateBaqaya(source, total);
         } else {
           // If only the quantity or price changed, update baqaya accordingly
-          console.log("Consumer name unchanged, adjusting baqaya for the same consumer.");
+          console.log(
+            "Consumer name unchanged, adjusting baqaya for the same consumer."
+          );
           await updateBaqaya(source, total - previousTotal); // Adjust the difference between the old and new total
         }
-  
+
         // Show alert for successful update
         const alertMessage = `Sale for ${previousExpense.Name} has been updated.`;
-        setModalMessage(alertMessage);  // Show modal with update message
-        setShowModal(true);  // Display modal
-  
+        setModalMessage(alertMessage); // Show modal with update message
+        setShowModal(true); // Display modal
+
         console.log("Sale updated successfully");
       } else {
         // This means we're adding a new sale (POST request)
-        response = await fetch("https://dairy-mern-2.onrender.com/consumerssale", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(expensePayload),
-        });
-  
+        response = await fetch(
+          "https://dairy-mern-2.onrender.com/consumerssale",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(expensePayload),
+          }
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-  
+
         const alertMessage = `${quantity} ${translations[language].KiloMilk} ${translations[language].added}`;
         setModalMessage(alertMessage);
         setShowModal(true);
-  
+
         // Call the function to update Baqaya for the new sale
         await updateBaqaya(source, total);
       }
-  
+
       // Refresh data after saving
       await fetchData();
-  
+
       // Reset form fields and clear editIndex to signify we're no longer editing
       setSource("");
       setQuantity("");
@@ -413,7 +448,6 @@ const ConsumersDales = () => {
     }
   };
 
-  
   const handleDelete = (index) => {
     setShowAlert(true);
     setDeleteIndex(index);
@@ -426,31 +460,36 @@ const ConsumersDales = () => {
         try {
           // Step 1: Fetch the consumer's data from ConsumerKhata using the consumer's name (expense.Name)
           const consumerResponse = await fetch(
-            `https://dairy-mern-2.onrender.com/consumerkhata?name=${encodeURIComponent(expense.Name)}`
+            `https://dairy-mern-2.onrender.com/consumerkhata?name=${encodeURIComponent(
+              expense.Name
+            )}`
           );
-          
+
           if (!consumerResponse.ok) {
             throw new Error(`Error fetching consumer data for ${expense.Name}`);
           }
-  
+
           const consumerData = await consumerResponse.json();
-  
+
           // Step 2: Ensure we are matching the correct consumer based on the name and other properties
           const consumer = consumerData.find(
             (c) => c.name === expense.Name // Match consumer exactly by name
           );
-  
+
           if (!consumer) {
             console.error(`No exact consumer match found for ${expense.Name}`);
             return;
           }
-  
+
           // Step 3: Calculate the sale amount and update the baqaya
-          const saleAmount = parseFloat(expense.Quantity) * parseFloat(expense.UnitPrice);
+          const saleAmount =
+            parseFloat(expense.Quantity) * parseFloat(expense.UnitPrice);
           const updatedBaqaya = (parseFloat(consumer.baqaya) || 0) - saleAmount;
-  
-          console.log(`Updating baqaya for ${consumer.name}, sale amount: ${saleAmount}, new baqaya: ${updatedBaqaya}`);
-  
+
+          console.log(
+            `Updating baqaya for ${consumer.name}, sale amount: ${saleAmount}, new baqaya: ${updatedBaqaya}`
+          );
+
           // Step 4: Update the consumer's baqaya
           const updateResponse = await fetch(
             `https://dairy-mern-2.onrender.com/consumerkhata/${consumer._id}`,
@@ -462,13 +501,13 @@ const ConsumersDales = () => {
               body: JSON.stringify({ ...consumer, baqaya: updatedBaqaya }),
             }
           );
-  
+
           if (!updateResponse.ok) {
             throw new Error(`Error updating baqaya for ${expense.Name}`);
           }
-  
+
           console.log(`Baqaya updated successfully for ${expense.Name}`);
-  
+
           // Step 5: Delete the sale from the consumerssale collection
           const deleteResponse = await fetch(
             `https://dairy-mern-2.onrender.com/consumerssale/${expense._id}`,
@@ -479,29 +518,31 @@ const ConsumersDales = () => {
               },
             }
           );
-  
+
           if (!deleteResponse.ok) {
             throw new Error(`HTTP error! status: ${deleteResponse.status}`);
           }
-  
+
           const result = await deleteResponse.json();
           console.log(result.message); // Log the message from the backend
-  
+
           // Step 6: Refresh the expenses list after deleting an expense
           await fetchData();
         } catch (error) {
-          console.error("There was an error deleting the sale or updating baqaya:", error);
+          console.error(
+            "There was an error deleting the sale or updating baqaya:",
+            error
+          );
         }
       } else {
         console.error("Attempted to delete an expense without a valid ID");
       }
     }
-  
+
     // Reset the state regardless of whether the delete was successful or not
     setDeleteIndex(null);
     setShowAlert(false);
   };
-  
 
   const getMonthlyExpenses = () => {
     const monthlyExpenses = expenses.reduce((acc, expense) => {
@@ -610,7 +651,7 @@ const ConsumersDales = () => {
           required // Makes sure the user selects an option
         >
           <option value="" disabled>
-          {translations[language].placeholder}
+            {translations[language].placeholder}
           </option>{" "}
           {/* Default option */}
           {consumerNames.map((name, index) => (

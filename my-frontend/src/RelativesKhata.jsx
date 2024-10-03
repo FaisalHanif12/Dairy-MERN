@@ -75,6 +75,8 @@ const RelativesKhata = () => {
       In: "In",
       expens: "Expense",
       record: "Record has been updated",
+      transcation: "Detailed Transactions",
+      monthlye: "Monthly Expense Summary",
     },
     Urdu: {
       date: "تاریخ",
@@ -105,6 +107,8 @@ const RelativesKhata = () => {
       added: " شامل ہوگیا ہے",
       In: "میں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
+      transcation: "تفصیلی لین دین",
+      monthlye: "ماہانہ اخراجات کا خلاصہ" ,
     },
   };
   const monthTranslations = {
@@ -148,24 +152,45 @@ const RelativesKhata = () => {
 
 
   const generateReport = () => {
+    // Detailed transaction data for each entry
     const reportData = expenses.map((expense) => {
-      const date = new Date(expense.Date).toLocaleDateString();
-      const name = expense.Rname; // Use Rname for relative name
-      const quantity = expense.Quantity;
-      const unitPrice = expense.RUnitPrice; // Use RUnitPrice for unit price
-      const total = expense.RTotal; // Use RTotal for total
-  
-      return language === "English"
-        ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
-        : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
-    }).join("\n");
-  
-    const reportHeader = language === "English"
-      ? `${translations[language].relativesKhata}\n\n` // Updated title for RelativesKhata
-      : `${translations[language].relativesKhata}\n\n`;
-  
-    return reportHeader + reportData;
-  };
+        const date = new Date(expense.Date).toLocaleDateString();
+        const name = expense.Rname; // Use 'Rname' for relative's name
+        const quantity = expense.Quantity;
+        const unitPrice = expense.RUnitPrice; // Use 'RUnitPrice' for unit price
+        const total = expense.RTotal; // Use 'RTotal' for total
+
+        return language === "English"
+          ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
+          : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
+    }).join("\n\n"); // Ensures there is a blank line between each entry for clarity
+
+    // Monthly sales summary
+    const monthlyExpenses = getMonthlyExpenses();
+    const monthlyReport = Object.entries(monthlyExpenses).map(([monthYear, total]) => {
+        return language === "English"
+          ? `${monthYear}: Total Sales = ${total}`
+          : `${monthYear}: کل فروخت = ${total}`;
+    }).join("\n\n"); // Each month's summary is separated by a blank line
+
+    // Overall sales summary
+    const overallExpenses = getOverallExpenses();
+    const overallReport = language === "English"
+        ? `Overall Sales: Total = ${overallExpenses.toFixed(2)}`
+        : `کل فروخت: مجموعی = ${overallExpenses.toFixed(2)}`;
+
+    // Assemble the full report with headings and section separation
+    const reportHeader = translations[language].relativesKhata + "\n\n"; // Heading for the report
+    const transactionHeader = "Detailed Transactions:\n\n"; // Heading for detailed transactions
+    const monthlySummaryHeader = "Monthly Expense Summary:\n\n"; // Heading for monthly summary
+    const overallSummaryHeader = "Overall Sales Summary:\n\n"; // Heading for overall summary
+
+    const fullReport = `${reportHeader}${transactionHeader}${reportData}\n\n${monthlySummaryHeader}${monthlyReport}\n\n${overallSummaryHeader}${overallReport}`;
+
+    return fullReport;
+};
+
+
   
   // Handle download report
   const handleDownloadReport = () => {
