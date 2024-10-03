@@ -21,10 +21,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.use(express.json());
 
 const allowedOrigins = [
-    'http://localhost:3000',
+    'http://localhost:4200',
     'http://localhost:3001',
-    'https://maher-dairy.vercel.app',
-    'https://dairy-mern-2.onrender.com'
   ];
   
   const corsOptionsDelegate = function (req, callback) {
