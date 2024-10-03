@@ -29,6 +29,13 @@
     text-align: left;
 }
 
+.date-input {
+    -webkit-appearance: none; /* Disables the default style for Chrome, Safari */
+    -moz-appearance: none;    /* Disables the default style for Firefox */
+    appearance: none;         /* Standard property, currently not fully supported */
+}
+
+
 .expenditure-input,
 .date-input {
     padding: 10px;
