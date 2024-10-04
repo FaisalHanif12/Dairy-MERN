@@ -20,7 +20,7 @@ const Sales = () => {
 
   const fetchSalesSummary = async () => {
     try {
-      const response = await fetch('http://localhost:3001/sales_summary');
+      const response = await fetch('https://api.maherdairy.com/sales_summary');
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }

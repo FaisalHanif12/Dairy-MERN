@@ -111,7 +111,7 @@ const ConsumersDales = () => {
   const fetchConsumerNames = async () => {
     try {
       const response = await fetch(
-        "http://localhost:3001/consumerkhata"
+        "https://api.maherdairy.com"
       ); // Update with correct API endpoint
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -133,7 +133,7 @@ const ConsumersDales = () => {
   const fetchData = async () => {
     try {
       const response = await fetch(
-        "http://localhost:3001/consumerssale",
+        "https://api.maherdairy.com",
         {
           headers: {
             Accept: "application/json",
@@ -297,7 +297,7 @@ const ConsumersDales = () => {
     try {
       // Fetch the consumer's data from ConsumerKhata using the consumer's name
       const response = await fetch(
-        `http://localhost:3001/consumerkhata?name=${encodeURIComponent(
+        `https://api.maherdairy.com?name=${encodeURIComponent(
           consumerName
         )}`
       );
@@ -324,7 +324,7 @@ const ConsumersDales = () => {
 
       // Now update the baqaya for this consumer
       const updateResponse = await fetch(
-        `http://localhost:3001/consumerkhata/${matchingConsumer._id}`,
+        `https://api.maherdairy.com/${matchingConsumer._id}`,
         {
           method: "PUT",
           headers: {
@@ -377,7 +377,7 @@ const ConsumersDales = () => {
         const expenseId =
           previousExpense._id || previousExpense.idConsumersSale; // Get the correct ID
         response = await fetch(
-          `http://localhost:3001/consumerssale/${expenseId}`,
+          `https://api.maherdairy.com/${expenseId}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -415,7 +415,7 @@ const ConsumersDales = () => {
       } else {
         // This means we're adding a new sale (POST request)
         response = await fetch(
-          "http://localhost:3001/consumerssale",
+          "https://api.maherdairy.com",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -460,7 +460,7 @@ const ConsumersDales = () => {
         try {
           // Step 1: Fetch the consumer's data from ConsumerKhata using the consumer's name (expense.Name)
           const consumerResponse = await fetch(
-            `http://localhost:3001/consumerkhata?name=${encodeURIComponent(
+            `https://api.maherdairy.com?name=${encodeURIComponent(
               expense.Name
             )}`
           );
@@ -492,7 +492,7 @@ const ConsumersDales = () => {
 
           // Step 4: Update the consumer's baqaya
           const updateResponse = await fetch(
-            `http://localhost:3001/consumerkhata/${consumer._id}`,
+            `https://api.maherdairy.com/${consumer._id}`,
             {
               method: "PUT",
               headers: {
@@ -510,7 +510,7 @@ const ConsumersDales = () => {
 
           // Step 5: Delete the sale from the consumerssale collection
           const deleteResponse = await fetch(
-            `http://localhost:3001/consumerssale/${expense._id}`,
+            `https://api.maherdairy.com/${expense._id}`,
             {
               method: "DELETE",
               headers: {

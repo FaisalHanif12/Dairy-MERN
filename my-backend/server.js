@@ -23,6 +23,8 @@ app.use(express.json());
 const allowedOrigins = [
     'http://localhost:4200',
     'http://localhost:3001',
+    'https://maherdairy.com',
+    'https://api.maherdairy.com',
   ];
   
   const corsOptionsDelegate = function (req, callback) {
