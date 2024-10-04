@@ -144,7 +144,7 @@ const ConsumerKhata = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:3001/consumerkhata");
+      const response = await fetch("https://api.maherdairy.com/consumerkhata");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -153,7 +153,7 @@ const ConsumerKhata = () => {
       const updatedConsumersData = await Promise.all(
         consumersData.map(async (consumer) => {
           const wasooliResponse = await fetch(
-            `http://localhost:3001/wasooli/${consumer._id}`
+            `https://api.maherdairy.com/wasooli/${consumer._id}`
           );
           if (!wasooliResponse.ok) {
             //console.log(`Failed to fetch wasooli data for consumer ID: ${consumer.idconsumerkhata}`);
@@ -274,8 +274,8 @@ const ConsumerKhata = () => {
     // Check if it's an update or create operation
     const isUpdating = idconsumerkhata && idconsumerkhata.length === 24; // Valid MongoDB ObjectId check
     const endpoint = isUpdating
-      ? `http://localhost:3001/consumerkhata/${idconsumerkhata}` // Update record by ID
-      : "http://localhost:3001/consumerkhata"; // Create new record
+      ? `https://api.maherdairy.com/consumerkhata/${idconsumerkhata}` // Update record by ID
+      : "https://api.maherdairy.com/consumerkhata"; // Create new record
 
     const method = isUpdating ? "PUT" : "POST"; // Determine HTTP method
 
@@ -372,7 +372,7 @@ const ConsumerKhata = () => {
   
     try {
       const response = await fetch(
-        `http://localhost:3001/consumerkhata/${selectedConsumerId}`,
+        `https://api.maherdairy.com/consumerkhata/${selectedConsumerId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -520,7 +520,7 @@ const ConsumerKhata = () => {
     try {
       // Delete the Wasooli transaction
       const deleteResponse = await fetch(
-        `http://localhost:3001/wasooli/${wasooliId}`,
+        `https://api.maherdairy.com/wasooli/${wasooliId}`,
         { method: "DELETE"}
       );
 
@@ -626,7 +626,7 @@ const ConsumerKhata = () => {
             consumerId: selectedConsumerId // Change this to `consumerId`
         };
 
-        let endpoint = "http://localhost:3001/wasooli";
+        let endpoint = "https://api.maherdairy.com/wasooli";
         let method = "POST";
 
         // If you're editing an existing transaction, adjust the endpoint and method.
