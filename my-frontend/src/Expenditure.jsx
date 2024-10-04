@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Expenditure.css";
 import { useNavigate } from "react-router-dom";
-import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+import { saveAs } from "file-saver"; // Import file-saver to handle file downloads
 const Expenditure = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState(() => {
@@ -32,7 +32,9 @@ const Expenditure = () => {
 
   const fetchUniqueNames = async () => {
     try {
-      const response = await fetch("https://dairy-mern-2.onrender.com/unique-namese");
+      const response = await fetch(
+        "https://api.maherdairy.com/unique-namese"
+      );
       const data = await response.json();
       setUniqueNames(data);
     } catch (error) {
@@ -66,7 +68,7 @@ const Expenditure = () => {
       enterSource: "Enter source expense ",
       enterAmount: "Enter amount of Expense",
       expens: "Expense",
-      record:" Record has been updated",
+      record: " Record has been updated",
       transcation: "Detailed Transactions",
       monthlye: "Monthly Expense Summary",
     },
@@ -97,8 +99,8 @@ const Expenditure = () => {
       download: "رپورٹ ڈاؤن لوڈ کریں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
       transcation: "تفصیلی لین دین",
-      monthlye: "ماہانہ اخراجات کا خلاصہ" ,
-   },
+      monthlye: "ماہانہ اخراجات کا خلاصہ",
+    },
   };
 
   const monthTranslations = {
@@ -117,7 +119,9 @@ const Expenditure = () => {
   };
   const fetchData = async () => {
     try {
-      const response = await fetch("https://dairy-mern-2.onrender.com/expenditure");
+      const response = await fetch(
+        "https://api.maherdairy.com/expenditure"
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -137,47 +141,47 @@ const Expenditure = () => {
   }, []);
 
   const generateReport = () => {
-    // Detailed entries for each expenditure
+    // Generate detailed transaction data for each entry
     const reportData = expenses.map((expense) => {
         const date = new Date(expense.Date).toLocaleDateString();
         const source = expense.source;
-        const amount = expense.amount; // Ensure the amount is formatted to two decimal places
+        const amount = expense.amount.toFixed(2); // Ensure amount is formatted to two decimal places
 
         return language === "English"
-          ? `Date: ${date}, Source: ${source}, Amount: ${amount}`
+          ? `Date: ${date}, Source: ${source}, Amount: $${amount}`
           : `تاریخ: ${date}, خرچے کا ذریعہ: ${source}, رقم: ${amount}`;
-    }).join("\n");
+    }).join("\n\n"); // Added more spacing between entries
 
     // Monthly expenditures summary
     const monthlyExpenses = getMonthlyExpenses();
     const monthlyReport = Object.entries(monthlyExpenses).map(([monthYear, total]) => {
         return language === "English"
-          ? `${monthYear}: Total Expenditure = ${total}`
+          ? `${monthYear}: Total Expenditure = $${total}`
           : `${monthYear}: کل خرچ = ${total}`;
-    }).join("\n");
+    }).join("\n\n"); // Added spacing between monthly entries
 
     // Overall expenditures
     const overallExpenses = getOverallExpenses();
     const overallReport = language === "English"
-        ? `Overall Expenditures: Total = ${overallExpenses}`
-        : `کل خرچے: مجموعی = ${overallExpenses}`;
+        ? `Overall Expenditures: Total = $${overallExpenses.toFixed(2)}`
+        : `کل خرچے: مجموعی = $${overallExpenses.toFixed(2)}`;
 
-    // Assemble the full report
-    const reportHeader = language === "English"
-        ? `${translations[language].title}\n\n`
-        : `${translations[language].title}\n\n`;
+    // Assemble the full report with headings and all entries
+    const reportHeader = translations[language].title + "\n\n";
+    const transactionHeader = "Detailed Transactions:\n\n"; // Heading for detailed transactions
+    const monthlySummaryHeader = "Monthly Expense Summary:\n\n"; // Heading for monthly summary
+    const overallSummaryHeader = "Overall Expenditure Summary:\n\n"; // Heading for overall summary
 
-    const fullReport = `${reportHeader} ${translations[language].transcation}\n${reportData}\n\n${translations[language].monthlye}\n${monthlyReport}\n\n${overallReport}`;
+    const fullReport = `${reportHeader}${transactionHeader}${reportData}\n\n${monthlySummaryHeader}${monthlyReport}\n\n${overallSummaryHeader}${overallReport}`;
+
     return fullReport;
-}; 
-  
+};
+
   const handleDownloadReport = () => {
     const report = generateReport();
     const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
     saveAs(blob, `ExpenditureReport_${language}.txt`);
   };
-
-
 
   const toggleGroupVisibility = (monthYear) => {
     setGlobalVisibility((prevGlobalState) => {
@@ -249,7 +253,7 @@ const Expenditure = () => {
         // Assuming your expense objects use MongoDB's _id as the key for ID
         const expenseId = expenses[editIndex]._id; // Use the _id field for MongoDB documents
         response = await fetch(
-          `https://dairy-mern-2.onrender.com/expenditure/${expenseId}`,
+          `https://api.maherdairy.com/expenditure/${expenseId}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -268,11 +272,14 @@ const Expenditure = () => {
         setShowModal(true);
       } else {
         // Adding a new expense
-        response = await fetch("https://dairy-mern-2.onrender.com/expenditure", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(expensePayload),
-        });
+        response = await fetch(
+          "https://api.maherdairy.com/expenditure",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(expensePayload),
+          }
+        );
 
         const monthYear = new Date(date).toLocaleString("default", {
           month: "long",
@@ -338,7 +345,7 @@ const Expenditure = () => {
           console.log("Attempting to delete expense with ID:", expense._id); // Debugging log
 
           const response = await fetch(
-            `https://dairy-mern-2.onrender.com/expenditure/${expense._id}`,
+            `https://api.maherdairy.com/expenditure/${expense._id}`,
             {
               method: "DELETE",
               headers: {
@@ -519,7 +526,6 @@ const Expenditure = () => {
           ? translations[language].hideAll
           : translations[language].showAll}
       </button>
-
 
       <button onClick={handleDownloadReport} className="download-button">
         {translations[language].download}
