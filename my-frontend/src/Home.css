@@ -163,3 +163,40 @@
     padding: 15px; /* Reduce padding on smaller screens */
   }
 }
+/* Login Container */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
+  background-color: #f4f4f4; /* Light grey background */
+}
+
+/* Input fields styling */
+.login-container input {
+  width: 80%; /* Input field width */
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc; /* Light grey border */
+  border-radius: 5px; /* Rounded borders */
+  font-size: 16px; /* Font size for the input */
+}
+
+/* Button styling */
+.login-container button {
+  padding: 10px 20px;
+  background-color: #007BFF; /* Bootstrap primary color */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px; /* Font size for the button */
+  width: 84%; /* Slightly wider to center with inputs */
+  transition: background-color 0.3s; /* Smooth transition for hover effect */
+}
+
+/* Button hover effect */
+.login-container button:hover {
+  background-color: #0056b3; /* Darken the button on hover */
+}

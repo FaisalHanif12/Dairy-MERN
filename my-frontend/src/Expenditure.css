@@ -256,3 +256,27 @@
         font-size: 0.9rem;
     }
 }
+
+.custom-dropdown {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    width: 100%; /* make sure it matches the input width */
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000; /* high enough to float above other content */
+    top: 100%; /* position right below the input */
+    left: 0;
+    box-shadow: 0px 4px 6px rgba(0,0,0,0.1); /* optional for better visibility */
+  }
+  
+  .custom-dropdown li {
+    padding: 8px;
+    list-style: none; /* removing bullet points */
+    cursor: pointer;
+  }
+  
+  .custom-dropdown li:hover {
+    background-color: #f0f0f0;
+  }
+  

@@ -28,4 +28,8 @@ yarn-error.log*
 /my-backend/node_modules/
 
 # Ignore .env files in backend
-my-backend/.env
+/my-backend/.env
+
+# Frontend environment variables
+/my-frontend/.env
+/my-frontend/.env.production

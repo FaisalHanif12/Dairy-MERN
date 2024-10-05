@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect,useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core'; // Import Capacitor to detect platform
@@ -11,6 +11,12 @@ import Employee from './Employee';
 import Sales from './Sales';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(Capacitor.getPlatform() !== 'web');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const correctUsername = process.env.REACT_APP_USERNAME;
+  const correctPassword = process.env.REACT_APP_PASSWORD;
 
   useEffect(() => {
     const initializeNotifications = async () => {
@@ -27,10 +33,8 @@ function App() {
 
   const scheduleNotifications = async () => {
     try {
-      // Cancel any previous notifications to avoid duplicates (optional)
       await LocalNotifications.cancelAll();
 
-      // Schedule notifications for 11 AM, 5 PM, and 7 PM with an image and persistent notifications
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -48,10 +52,10 @@ function App() {
             attachments: [
               {
                 id: 'milk-image',
-                url: '/Images/cowemoji.jpeg', // Relative path to your local image
+                url: '/Images/cowemoji.jpeg',
               },
             ],
-            ongoing: true, // Make notification persistent (sticky)
+            ongoing: true,
           },
           {
             title: 'Reminder',
@@ -71,7 +75,7 @@ function App() {
                 url: '/Images/cowemoji.jpeg',
               },
             ],
-            ongoing: true, // Make notification persistent (sticky)
+            ongoing: true,
           },
           {
             title: 'Reminder',
@@ -88,19 +92,36 @@ function App() {
             attachments: [
               {
                 id: 'collection-image',
-                url: '/Images/cowemoji.jpeg', // Image for the 7 PM reminder
+                url: '/Images/cowemoji.jpeg',
               },
             ],
-            ongoing: true, // Make notification persistent (sticky)
+            ongoing: true,
           },
         ],
       });
-
       console.log('Notifications scheduled for 11 AM, 5 PM, and 7 PM');
     } catch (error) {
       console.error('Error scheduling notifications:', error);
     }
   };
+
+  const handleLogin = () => {
+    if (username === correctUsername && password === correctPassword) {
+      setIsAuthenticated(true);
+    } else {
+      alert("Incorrect Username or Password");
+    }
+  };
+
+  if (!isAuthenticated && Capacitor.getPlatform() === 'web') {
+    return (
+      <div className="login-container">
+        <input type="text" placeholder="Username" onChange={e => setUsername(e.target.value)} />
+        <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+        <button onClick={handleLogin}>Login</button>
+      </div>
+    );
+  }
 
   return (
     <Router>
