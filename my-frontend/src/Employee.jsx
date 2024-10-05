@@ -67,7 +67,7 @@ const Employee = () => {
 
   const fetchUniqueNames = async () => {
     try {
-      const response = await fetch("http://localhost:3001/unique-namesk");
+      const response = await fetch("https://api.maherdairy.com/unique-namesk");
       const data = await response.json();
       setUniqueNames(data);
     } catch (error) {
@@ -176,7 +176,7 @@ const Employee = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:3001/employeekhata");
+      const response = await fetch("https://api.maherdairy.com/employeekhata");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -188,7 +188,7 @@ const Employee = () => {
       const updatedConsumersData = await Promise.all(
         consumersData.map(async (consumer) => {
           const wasooliResponse = await fetch(
-            `http://localhost:3001/kharchay/${consumer._id}`
+            `https://api.maherdairy.com/kharchay/${consumer._id}`
           );
           if (!wasooliResponse.ok) {
             console.log(
@@ -307,8 +307,8 @@ const Employee = () => {
     }
 
     const endpoint = idEmployeekhata
-      ? `http://localhost:3001/employeekhata/${idEmployeekhata}`
-      : "http://localhost:3001/employeekhata";
+      ? `https://api.maherdairy.com/employeekhata/${idEmployeekhata}`
+      : "https://api.maherdairy.com/employeekhata";
     const method = idEmployeekhata ? "PUT" : "POST";
     const body = JSON.stringify({
       date: formattedDate, // Ensure lowercase 'date'
@@ -407,7 +407,7 @@ const Employee = () => {
     // Corrected URL in the fetch request
     try {
       const response = await fetch(
-        `http://localhost:3001/employeekhata/${selectedConsumerId}`,
+        `https://api.maherdairy.com/employeekhata/${selectedConsumerId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -516,7 +516,7 @@ const Employee = () => {
     try {
       // Delete the Wasooli transaction
       const deleteResponse = await fetch(
-        `http://localhost:3001/kharchay/${wasooliId}`,
+        `https://api.maherdairy.com/kharchay/${wasooliId}`,
         { method: "DELETE" }
       );
 
@@ -608,7 +608,7 @@ const Employee = () => {
         Wasooli: wasooliAmount,
       };
 
-      let endpoint = "http://localhost:3001/kharchay";
+      let endpoint = "https://api.maherdairy.com/kharchay";
       let method = "POST";
 
       // If we're editing an existing transaction, adjust the endpoint and method.

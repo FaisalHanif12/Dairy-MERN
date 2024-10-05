@@ -61,7 +61,7 @@ const Expenditure = () => {
       show: "Show",
       hide: "Hide",
       KiloMilk: "Kilo Milk",
-      kaa: "of",
+      kaa: "Of",
       added: "has been added",
       download: "Download Report",
       In: "In",
