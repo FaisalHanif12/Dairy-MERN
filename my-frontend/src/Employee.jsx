@@ -197,15 +197,40 @@ const Employee = () => {
             return consumer; // Return the consumer without wasooli data if fetch fails
           }
           const wasooliData = await wasooliResponse.json();
-          return { ...consumer, wasooliTransactions: wasooliData };
+
+          // Check for the latest kharchay update date
+          const lastKharchayUpdate = wasooliData.reduce(
+            (latest, transaction) => {
+              const transactionDate = new Date(
+                transaction.lastUpdated || Date.now()
+              );
+              return transactionDate > latest ? transactionDate : latest;
+            },
+            new Date(0)
+          );
+
+          return { 
+            ...consumer, 
+            wasooliTransactions: wasooliData,
+            lastKharchayUpdate, // Add last update date for sorting
+          };
         })
       );
 
-      // Check the updated consumers data
-      console.log("Updated consumers data:", updatedConsumersData);
+      // Now sort by the lastKharchayUpdate date
+      updatedConsumersData.sort((a, b) => {
+      
+        const dateComparison = b.lastKharchayUpdate - a.lastKharchayUpdate;
 
-      // Update state with the processed and fetched data
-      setConsumers(updatedConsumersData);
+        // If the dates are the same, sort by employee _id for consistency
+        if (dateComparison === 0) {
+          return b._id.localeCompare(a._id); // Sort by employee ID for consistency
+        }
+
+        return dateComparison; // Otherwise return the date comparison result
+      });
+
+         setConsumers(updatedConsumersData);
     } catch (error) {
       console.error("Fetch error:", error);
     }

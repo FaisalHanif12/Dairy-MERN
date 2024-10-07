@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./ConsumerKhata.css";
-import { useNavigate } from 'react-router-dom';
-import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+import { useNavigate } from "react-router-dom";
+import { saveAs } from "file-saver"; // Import file-saver to handle file downloads
 
 const ConsumerKhata = () => {
   const navigate = useNavigate();
@@ -112,7 +112,7 @@ const ConsumerKhata = () => {
       confirmAddConsumer: "کیا آپ واقعی نیا صارف شامل کرنا چاہتے ہیں؟",
       yes: "جی ہاں",
       no: "نہیں",
-      Khata: "خاتہ", 
+      Khata: "خاتہ",
       Show: "دکھائیں",
       Hide: "چھپائیں",
       deleteWasooliConfirm: "کیا آپ واقعی اس وصولی کو حذف کرنا چاہتے ہیں؟",
@@ -156,13 +156,42 @@ const ConsumerKhata = () => {
             `https://api.maherdairy.com/wasooli/${consumer._id}`
           );
           if (!wasooliResponse.ok) {
-            //console.log(`Failed to fetch wasooli data for consumer ID: ${consumer.idconsumerkhata}`);
             return consumer; // Return the consumer without wasooli data if fetch fails
           }
           const wasooliData = await wasooliResponse.json();
-          return { ...consumer, wasooliTransactions: wasooliData };
+          console.log("Wasooli Data:", wasooliData); // Log the fetched wasooli data
+
+          // Check for the latest wasooli update date
+          const lastWasooliUpdate = wasooliData.reduce(
+            (latest, transaction) => {
+              const transactionDate = new Date(
+                transaction.lastUpdated || Date.now()
+              );
+              return transactionDate > latest ? transactionDate : latest;
+            },
+            new Date(0)
+          );
+
+          return {
+            ...consumer,
+            wasooliTransactions: wasooliData,
+            lastWasooliUpdate,
+          };
         })
       );
+
+      updatedConsumersData.sort((a, b) => {
+    
+        const dateComparison = b.lastWasooliUpdate - a.lastWasooliUpdate;
+    
+        // If the dates are the same, sort by consumer name
+        if (dateComparison === 0) {
+            // Additional fallback sort by _id for unique ordering
+            return b._id.localeCompare(a._id); // Ensure the _id comparison is consistent
+        }
+    
+        return dateComparison; // Otherwise return the date comparison result
+    });
 
       setConsumers(updatedConsumersData);
     } catch (error) {
@@ -176,27 +205,30 @@ const ConsumerKhata = () => {
 
   const generateReport = (consumer) => {
     // Generate the wasooli transaction details
-    const reportData = consumer.wasooliTransactions.map((transaction) => {
-      const date = new Date(transaction.date).toLocaleDateString();
-      const wasooli = transaction.Wasooli;
-  
-      return language === "English"
-        ? `Date: ${date}, Wasooli: ${wasooli}`
-        : `تاریخ: ${date}, وصولی: ${wasooli}`;
-    }).join("\n");
-  
+    const reportData = consumer.wasooliTransactions
+      .map((transaction) => {
+        const date = new Date(transaction.date).toLocaleDateString();
+        const wasooli = transaction.Wasooli;
+
+        return language === "English"
+          ? `Date: ${date}, Wasooli: ${wasooli}`
+          : `تاریخ: ${date}, وصولی: ${wasooli}`;
+      })
+      .join("\n");
+
     // Add the total Baqaya to the report
-    const totalBaqaya = language === "English"
-      ? `Total Baqaya: ${consumer.baqaya}`
-      : `کل باقیہ: ${consumer.baqaya}`;
-  
-    const reportHeader = language === "English"
-      ? `${translations[language].consumerKhata} - ${consumer.name}\n\n`
-      : `${translations[language].consumerKhata} - ${consumer.name}\n\n`;
-  
+    const totalBaqaya =
+      language === "English"
+        ? `Total Baqaya: ${consumer.baqaya}`
+        : `کل باقیہ: ${consumer.baqaya}`;
+
+    const reportHeader =
+      language === "English"
+        ? `${translations[language].consumerKhata} - ${consumer.name}\n\n`
+        : `${translations[language].consumerKhata} - ${consumer.name}\n\n`;
+
     return reportHeader + reportData + `\n\n${totalBaqaya}`;
   };
-  
 
   const handleDownloadReport = (consumer) => {
     const report = generateReport(consumer);
@@ -299,9 +331,7 @@ const ConsumerKhata = () => {
     } catch (error) {
       console.error("Error:", error);
     }
-};
-
-
+  };
 
   const resetForm = () => {
     setConsumerData({
@@ -319,22 +349,23 @@ const ConsumerKhata = () => {
   };
 
   const handleUpdateClick = (id) => {
-    const consumerToUpdate = consumers.find(consumer => consumer._id === id); // Use _id from MongoDB
+    const consumerToUpdate = consumers.find((consumer) => consumer._id === id); // Use _id from MongoDB
 
     if (consumerToUpdate) {
-        setConsumerData({
-            date: consumerToUpdate.date ? new Date(consumerToUpdate.date).toISOString().split('T')[0] : '',
-            consumerName: consumerToUpdate.name || '',
-            baqaya: consumerToUpdate.baqaya || '',
-            idconsumerkhata: consumerToUpdate._id, // Use _id for MongoDB update
-        });
-        setIsUpdateMode(true);
-        setIsFormVisible(true);
+      setConsumerData({
+        date: consumerToUpdate.date
+          ? new Date(consumerToUpdate.date).toISOString().split("T")[0]
+          : "",
+        consumerName: consumerToUpdate.name || "",
+        baqaya: consumerToUpdate.baqaya || "",
+        idconsumerkhata: consumerToUpdate._id, // Use _id for MongoDB update
+      });
+      setIsUpdateMode(true);
+      setIsFormVisible(true);
     } else {
-        console.error("No consumer found with ID:", id);
+      console.error("No consumer found with ID:", id);
     }
-};
-
+  };
 
   const handleAddBaqayaClick = () => {
     setIsAddBaqayaVisible(true);
@@ -351,13 +382,13 @@ const ConsumerKhata = () => {
       setBaqayaError("Please fill the Baqaya field");
       return;
     }
-  
+
     const newBaqayaAmount = parseInt(baqayaToAdd);
     if (isNaN(newBaqayaAmount)) {
       setBaqayaError("Invalid Baqaya amount");
       return;
     }
-  
+
     // Find the consumer to update by _id
     const consumerToUpdate = consumers.find(
       (consumer) => consumer._id === selectedConsumerId
@@ -366,10 +397,10 @@ const ConsumerKhata = () => {
       console.error("Consumer not found");
       return;
     }
-  
+
     const currentBaqaya = parseInt(consumerToUpdate.baqaya) || 0;
     const updatedBaqaya = currentBaqaya + newBaqayaAmount;
-  
+
     try {
       const response = await fetch(
         `https://api.maherdairy.com/consumerkhata/${selectedConsumerId}`,
@@ -383,18 +414,18 @@ const ConsumerKhata = () => {
           }),
         }
       );
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       // Update local state
       const updatedConsumers = consumers.map((consumer) =>
         consumer._id === selectedConsumerId
           ? { ...consumer, baqaya: updatedBaqaya.toString() }
           : consumer
       );
-  
+
       setConsumers(updatedConsumers);
       setIsDataSaved(true);
       setBaqayaToAdd("");
@@ -405,7 +436,7 @@ const ConsumerKhata = () => {
       setBaqayaError("Failed to update baqaya");
     }
   };
-  
+
   const toggleMonthVisibility = (consumerId, monthYear) => {
     setMonthVisibility((prevVisibility) => ({
       ...prevVisibility,
@@ -449,58 +480,59 @@ const ConsumerKhata = () => {
 
   const handleUpdateWasooliClick = (consumerId, transactionId) => {
     if (!consumerId || !transactionId) {
-        console.error("Missing consumer ID or transaction ID");
-        return;
+      console.error("Missing consumer ID or transaction ID");
+      return;
     }
 
     const consumer = consumers.find((consumer) => consumer._id === consumerId);
     if (!consumer) {
-        console.error("Consumer not found for ID:", consumerId);
-        setIsAlertVisible(true);
-        setAlertMessage("Error: Consumer not found");
-        return;
+      console.error("Consumer not found for ID:", consumerId);
+      setIsAlertVisible(true);
+      setAlertMessage("Error: Consumer not found");
+      return;
     }
 
     const selectedWasooliCard = consumer.wasooliTransactions.find(
-        (txn) => txn._id.toString() === transactionId.toString()
+      (txn) => txn._id.toString() === transactionId.toString()
     );
     if (!selectedWasooliCard) {
-        console.error("Wasooli transaction not found for ID:", transactionId);
-        return;
+      console.error("Wasooli transaction not found for ID:", transactionId);
+      return;
     }
 
     // Update state with Wasooli data and store transaction ID for update
     setWasooliData({
-        date: selectedWasooliCard.date.slice(0, 10), // Convert to YYYY-MM-DD
-        wasooli: selectedWasooliCard.Wasooli ? selectedWasooliCard.Wasooli.toString() : "", // Fallback if undefined
+      date: selectedWasooliCard.date.slice(0, 10), // Convert to YYYY-MM-DD
+      wasooli: selectedWasooliCard.Wasooli
+        ? selectedWasooliCard.Wasooli.toString()
+        : "", // Fallback if undefined
     });
 
     // Store transaction ID in editingTransaction for update
     setEditingTransaction({
-        consumerId: consumerId,
-        transactionId: transactionId,
+      consumerId: consumerId,
+      transactionId: transactionId,
     });
 
     setSelectedConsumerId(consumerId);
     setCurrentManaging(consumerId);
     setIsWasooliVisible(true);
-};
-
+  };
 
   const handleManageClick = (consumerId) => {
     const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-    
+
     setSelectedConsumerId(consumerId);
     setIsWasooliVisible(true);
     setCurrentManaging(consumerId);
-  
+
     // If wasooliData.date is not set, default to the current date
     setWasooliData((prevState) => ({
       ...prevState,
       date: prevState.date || today,
     }));
   };
-  
+
   const handleWasooliInputChange = (e) => {
     const { name, value } = e.target;
     setWasooliData((prevState) => ({
@@ -521,7 +553,7 @@ const ConsumerKhata = () => {
       // Delete the Wasooli transaction
       const deleteResponse = await fetch(
         `https://api.maherdairy.com/wasooli/${wasooliId}`,
-        { method: "DELETE"}
+        { method: "DELETE" }
       );
 
       if (!deleteResponse.ok) {
@@ -559,17 +591,16 @@ const ConsumerKhata = () => {
       console.error("Missing consumer ID or wasooli ID.");
       return;
     }
-  
+
     // Log the parameters to ensure they are being passed correctly
     console.log(
       `Preparing to delete Wasooli with ID: ${wasooliId}, for Consumer ID: ${consumerId}, at Index: ${index}`
     );
-  
+
     // Set the deleteConfirmationData with the correct values
     setDeleteConfirmationData({ consumerId, wasooliId, index });
     setIsConfirmModalVisible(true);
   };
-  
 
   const AlertModal = ({ isOpen, message, onClose }) => {
     if (!isOpen) return null;
@@ -602,66 +633,62 @@ const ConsumerKhata = () => {
     );
   };
 
-  
-  
   const handleSaveWasooliClick = async () => {
     try {
-        const wasooliAmount = parseInt(wasooliData.wasooli);
+      const wasooliAmount = parseInt(wasooliData.wasooli);
 
-        if (wasooliAmount <= 0) {
-            throw new Error("Invalid Wasooli amount");
-        }
+      if (wasooliAmount <= 0) {
+        throw new Error("Invalid Wasooli amount");
+      }
 
-        if (isNaN(wasooliAmount)) {
-            throw new Error("Please fill up the Wasooli amount");
-        }
+      if (isNaN(wasooliAmount)) {
+        throw new Error("Please fill up the Wasooli amount");
+      }
 
-        if (!wasooliData.date) {
-            throw new Error("Date is required");
-        }
+      if (!wasooliData.date) {
+        throw new Error("Date is required");
+      }
 
-        let payload = {
-            date: wasooliData.date,
-            Wasooli: wasooliAmount,
-            consumerId: selectedConsumerId // Change this to `consumerId`
-        };
+      let payload = {
+        date: wasooliData.date,
+        Wasooli: wasooliAmount,
+        consumerId: selectedConsumerId, // Change this to `consumerId`
+      };
 
-        let endpoint = "https://api.maherdairy.com/wasooli";
-        let method = "POST";
+      let endpoint = "https://api.maherdairy.com/wasooli";
+      let method = "POST";
 
-        // If you're editing an existing transaction, adjust the endpoint and method.
-        if (editingTransaction && editingTransaction.transactionId) {
-            endpoint += `/${editingTransaction.transactionId}`;
-            method = "PUT";
-        }
+      // If you're editing an existing transaction, adjust the endpoint and method.
+      if (editingTransaction && editingTransaction.transactionId) {
+        endpoint += `/${editingTransaction.transactionId}`;
+        method = "PUT";
+      }
 
-        const response = await fetch(endpoint, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-                errorData.message || "Failed to save Wasooli transaction"
-            );
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Failed to save Wasooli transaction"
+        );
+      }
 
-        console.log("Wasooli transaction saved:", await response.json());
+      console.log("Wasooli transaction saved:", await response.json());
 
-        setIsWasooliVisible(false);
-        setWasooliData({ date: "", wasooli: "" });
-        setEditingTransaction(null);
-        await fetchData(); // Re-fetch updated data
+      setIsWasooliVisible(false);
+      setWasooliData({ date: "", wasooli: "" });
+      setEditingTransaction(null);
+      await fetchData(); // Re-fetch updated data
     } catch (error) {
-        console.error("Error saving Wasooli transaction:", error);
-        setIsAlertVisible(true);
-        setAlertMessage(error.toString());
+      console.error("Error saving Wasooli transaction:", error);
+      setIsAlertVisible(true);
+      setAlertMessage(error.toString());
     }
-};
-
-
+  };
 
   const renderWasooliTransactions = (consumer) => {
     // Ensure consumer.wasooliTransactions is an array.
@@ -679,8 +706,7 @@ const ConsumerKhata = () => {
     return Object.entries(transactionsByMonth).map(
       ([monthYear, transactions]) => {
         // Check if the monthYear is visible based on the state.
-        const isButtonVisible =
-          monthYearButtonsVisibility[consumer._id];
+        const isButtonVisible = monthYearButtonsVisibility[consumer._id];
         const isDataVisible =
           monthVisibility[consumer._id]?.[monthYear] ?? false;
         return (
@@ -688,9 +714,7 @@ const ConsumerKhata = () => {
             {isButtonVisible && (
               <button
                 className="toggle-visibility-button"
-                onClick={() =>
-                  toggleMonthVisibility(consumer._id, monthYear)
-                }
+                onClick={() => toggleMonthVisibility(consumer._id, monthYear)}
               >
                 {isDataVisible
                   ? translations[language].Hide
@@ -703,7 +727,8 @@ const ConsumerKhata = () => {
                 <div className="wasooli-card-horizontal" key={index}>
                   {/* Ensure the property names match what's returned from the database. */}
                   <span>
-                    {translations[language].date} {new Date(transaction.date).toLocaleDateString()}
+                    {translations[language].date}{" "}
+                    {new Date(transaction.date).toLocaleDateString()}
                   </span>{" "}
                   {/* If your database returns 'date' in lowercase */}
                   <span>
@@ -713,10 +738,7 @@ const ConsumerKhata = () => {
                   <button
                     className="updatee-button"
                     onClick={() =>
-                      handleUpdateWasooliClick(
-                        consumer._id,
-                        transaction._id
-                      )
+                      handleUpdateWasooliClick(consumer._id, transaction._id)
                     }
                   >
                     {translations[language].update}
@@ -743,7 +765,7 @@ const ConsumerKhata = () => {
 
   return (
     <div className="consumer-khata-container">
-       <button onClick={() => navigate('/')} className="back-arrow1">
+      <button onClick={() => navigate("/")} className="back-arrow1">
         &#8592;
       </button>
       <h1 className="header">{translations[language].consumerKhata}</h1>
@@ -767,7 +789,6 @@ const ConsumerKhata = () => {
         onClose={() => setIsAlertVisible(false)}
       />
 
-      
       {consumers.map((consumer) => (
         <div className="consumer-card" key={consumer._id}>
           <h2 className="consumer-name">
@@ -809,26 +830,22 @@ const ConsumerKhata = () => {
             </button>
           </div>
 
-                  
           <button
             className="common-button download-buttonn"
-            onClick={() =>
-              toggleMonthYearButtonsVisibility(consumer._id)
-            }
+            onClick={() => toggleMonthYearButtonsVisibility(consumer._id)}
           >
             {monthYearButtonsVisibility[consumer._id]
               ? translations[language].hideAll
               : translations[language].showAll}
           </button>
 
-
           <button
-              className="common-button global-toggle-buttonn"
-              onClick={() => handleDownloadReport(consumer)}
-            >
-              {translations[language].downloadReport}
-            </button>
-    
+            className="common-button global-toggle-buttonn"
+            onClick={() => handleDownloadReport(consumer)}
+          >
+            {translations[language].downloadReport}
+          </button>
+
           {renderWasooliTransactions(consumer)}
 
           {currentManaging === consumer._id && isWasooliVisible && (
@@ -872,31 +889,30 @@ const ConsumerKhata = () => {
             </div>
           )}
 
-          {selectedConsumerId === consumer._id &&
-            isAddBaqayaVisible && (
-              <div className="add-baqaya-card">
-                <button
-                  className="close-button"
-                  onClick={() => setIsAddBaqayaVisible(false)}
-                >
-                  &#10005;
-                </button>
-                <span className="error-message">{baqayaError}</span>
-                <input
-                  type="number"
-                  placeholder={translations[language].baqayaa}
-                  value={baqayaToAdd}
-                  onChange={handleBaqayaInputChange}
-                />
+          {selectedConsumerId === consumer._id && isAddBaqayaVisible && (
+            <div className="add-baqaya-card">
+              <button
+                className="close-button"
+                onClick={() => setIsAddBaqayaVisible(false)}
+              >
+                &#10005;
+              </button>
+              <span className="error-message">{baqayaError}</span>
+              <input
+                type="number"
+                placeholder={translations[language].baqayaa}
+                value={baqayaToAdd}
+                onChange={handleBaqayaInputChange}
+              />
 
-                <button
-                  className="save-baqaya-button"
-                  onClick={handleSaveBaqayaClick}
-                >
-                  {translations[language].save}
-                </button>
-              </div>
-            )}
+              <button
+                className="save-baqaya-button"
+                onClick={handleSaveBaqayaClick}
+              >
+                {translations[language].save}
+              </button>
+            </div>
+          )}
         </div>
       ))}
       <ConfirmAddModal
