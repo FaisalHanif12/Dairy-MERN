@@ -3,7 +3,10 @@ const cors = require('cors');
 require('dotenv').config();
 const mongoose = require('mongoose');
 const app = express();
+const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 3001; // Change to 3002 or any available port
+const webpush = require('web-push');
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -48,8 +51,45 @@ const Expenditure = require('./models/Expenditure');
 const ConsumerKhata = require('./models/ConsumerKhata');
 const EmployeeKhata = require('./models/EmployeeKhata');
 const SalesSummary = require('./models/SalesSummary');
+const User = require('./models/User');  // Path to your User model
 const Wasoolii = require('./models/Wasooli'); // Adjust the path based on where this file is located.
 const Kharchay = require('./models/Kharchay'); // Adjust the path based on where this file is located.
+
+
+const webpush = require('web-push');
+
+// VAPID keys should be generated and kept secure
+const vapidKeys = {
+  publicKey: 'YOUR_VAPID_PUBLIC_KEY',
+  privateKey: 'YOUR_VAPID_PRIVATE_KEY'
+};
+
+webpush.setVapidDetails(
+  'mailto:example@yourdomain.com',
+  vapidKeys.publicKey,
+  vapidKeys.privateKey
+);
+
+// Save subscription to the database or a variable for demo purposes
+let savedSubscription;
+
+app.post('/subscribe', (req, res) => {
+  savedSubscription = req.body;
+  res.status(201).json({ message: 'Subscription saved.' });
+});
+
+app.post('/sendNotification', (req, res) => {
+  const payload = 'Your custom message here';
+
+  webpush.sendNotification(savedSubscription, payload)
+    .then(result => console.log(result))
+    .catch(e => console.log(e.stack));
+
+  res.status(200).json({ message: 'Notification sent' });
+});
+
+
+
 
 async function updateSalesSummary() {
     try {
@@ -127,6 +167,31 @@ app.get('/sales_summary', async (req, res) => {
     }
 });
 
+
+app.post('/users', async (req, res) => {
+    const { username, password } = req.body;
+    // console.log("Received credentials:", username, password);  // Helpful for debugging, should be removed or secured in production
+    try {
+      const user = await User.findOne({ username });
+      if (!user) {
+        console.log('User not found');
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+    //   console.log('User found, comparing password...');
+      // Directly compare the plain text passwords
+      if (user.password !== password) {
+        // console.log('Password does not match');
+        return res.status(400).json({ message: 'Invalid credentials' });
+      }
+
+    //   console.log('Login successful');
+      res.status(200).json({ message: 'Login successful' });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Server error during login' });
+    }
+});
 
 
 app.get('/unique-names', async (req, res) => {

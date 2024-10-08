@@ -163,40 +163,56 @@
     padding: 15px; /* Reduce padding on smaller screens */
   }
 }
-/* Login Container */
 .login-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 100vh; /* Full viewport height */
-  background-color: #f4f4f4; /* Light grey background */
+  justify-content: center;
+  height: 100vh;
+  background-color: #f4f4f4;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border-radius: 10px; /* Optional: Adds rounded corners to the login container */
 }
 
-/* Input fields styling */
-.login-container input {
-  width: 80%; /* Input field width */
+h1 {
+  color: #4a5eab;
+  margin-bottom: 10px;
+}
+
+.logo-container img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 20px auto;
+  display: block;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  width: 80%; /* Adjusted to make the form width responsive */
+  max-width: 300px; /* Ensures the form does not stretch too much on larger screens */
+}
+
+.login-form input {
   padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ccc; /* Light grey border */
-  border-radius: 5px; /* Rounded borders */
-  font-size: 16px; /* Font size for the input */
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
 
-/* Button styling */
-.login-container button {
-  padding: 10px 20px;
-  background-color: #007BFF; /* Bootstrap primary color */
+.login-form button {
+  padding: 10px;
   color: white;
+  background-color: #4a5eab;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 16px; /* Font size for the button */
-  width: 84%; /* Slightly wider to center with inputs */
-  transition: background-color 0.3s; /* Smooth transition for hover effect */
+  transition: background-color 0.3s;
 }
 
-/* Button hover effect */
-.login-container button:hover {
-  background-color: #0056b3; /* Darken the button on hover */
+.login-form button:hover {
+  background-color: #3e4a7a;
 }

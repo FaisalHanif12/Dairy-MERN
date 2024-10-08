@@ -1,124 +1,99 @@
-import React, { useEffect,useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core'; // Import Capacitor to detect platform
-import Home from './Home'; 
-import ConsumersSales from './ConsumersDales'; 
-import RelativesKhata from './RelativesKhata'; 
-import ConsumerKhata from './ConsumerKhata'; 
-import Expenditure from './Expenditure'; 
-import Employee from './Employee'; 
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Home from './Home';
+import ConsumersSales from './ConsumersDales';
+import RelativesKhata from './RelativesKhata';
+import ConsumerKhata from './ConsumerKhata';
+import Expenditure from './Expenditure';
+import Employee from './Employee';
 import Sales from './Sales';
+import logo from './cow2.jpg';
+
+  
+// In a component or a service file where you handle user interactions
+
+const subscribeToNotifications = async () => {
+  const serviceWorker = await navigator.serviceWorker.ready;
+  try {
+    const subscription = await serviceWorker.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: 'BNH0BLUThDkgU4nSYlzp8xYl9K2ou46-3IPOUq4qMdufrrZTT-vloR9-38k9QAYXsDnJJV9wOfVL0Kk_EP1kTg4', // Replace 'vapidKeys.publicKey' with the actual public VAPID key
+    });
+    console.log('Subscription:', subscription);
+    const response = await fetch('/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(subscription)
+    });
+    if (!response.ok) {
+      throw new Error('Failed to subscribe for notifications');
+    }
+    console.log('Successfully subscribed for notifications');
+  } catch (error) {
+    console.error('Error subscribing for notifications:', error);
+  }
+};
+
+// Call this function after a user logs in and opts to receive notifications
+
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(Capacitor.getPlatform() !== 'web');
+  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('isAuthenticated') === 'true');
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  const correctUsername = process.env.REACT_APP_USERNAME;
-  const correctPassword = process.env.REACT_APP_PASSWORD;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const initializeNotifications = async () => {
-      const { display } = await LocalNotifications.requestPermissions();
-      if (display === 'granted') {
-        await scheduleNotifications();
-      } else {
-        console.error('Permission for notifications was not granted');
-      }
-    };
-    
-    initializeNotifications();
+    // On component mount, check if user is authenticated from localStorage
+    const auth = localStorage.getItem('isAuthenticated');
+    setIsAuthenticated(auth === 'true');
   }, []);
 
-  const scheduleNotifications = async () => {
+  const handleLogin = async () => {
+    setLoading(true);
+    setError('');
     try {
-      await LocalNotifications.cancelAll();
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title: 'Reminder',
-            body: 'Please add the relatives or consumers milk.',
-            id: 1,
-            schedule: {
-              repeats: true,
-              every: 'day',
-              on: {
-                hour: 11,
-                minute: 0,
-              },
-            },
-            attachments: [
-              {
-                id: 'milk-image',
-                url: '/Images/cowemoji.jpeg',
-              },
-            ],
-            ongoing: true,
-          },
-          {
-            title: 'Reminder',
-            body: 'Please add the relatives or consumers milk.',
-            id: 2,
-            schedule: {
-              repeats: true,
-              every: 'day',
-              on: {
-                hour: 17,
-                minute: 0,
-              },
-            },
-            attachments: [
-              {
-                id: 'milk-image',
-                url: '/Images/cowemoji.jpeg',
-              },
-            ],
-            ongoing: true,
-          },
-          {
-            title: 'Reminder',
-            body: 'Please collect the wasooli from consumers.',
-            id: 3,
-            schedule: {
-              repeats: true,
-              every: 'day',
-              on: {
-                hour: 19,
-                minute: 0,
-              },
-            },
-            attachments: [
-              {
-                id: 'collection-image',
-                url: '/Images/cowemoji.jpeg',
-              },
-            ],
-            ongoing: true,
-          },
-        ],
+      const response = await fetch('http://localhost:3001/users', { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password })
       });
-      console.log('Notifications scheduled for 11 AM, 5 PM, and 7 PM');
-    } catch (error) {
-      console.error('Error scheduling notifications:', error);
-    }
-  };
-
-  const handleLogin = () => {
-    if (username === correctUsername && password === correctPassword) {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to login');
+      }
+      localStorage.setItem('isAuthenticated', 'true');  // Save authentication state in localStorage
       setIsAuthenticated(true);
-    } else {
-      alert("Incorrect Username or Password");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!isAuthenticated && Capacitor.getPlatform() === 'web') {
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');  // Remove authentication state from localStorage
+    setIsAuthenticated(false);  // Update state to reflect logout
+  };
+
+  if (!isAuthenticated) {
     return (
       <div className="login-container">
-        <input type="text" placeholder="Username" onChange={e => setUsername(e.target.value)} />
-        <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
-        <button onClick={handleLogin}>Login</button>
+        <h1>Maher Dairy</h1>
+        <div className="logo-container">
+          <img src={logo} alt="Maher Dairy Logo" />
+        </div>
+        <div className="login-form">
+          <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+          <button onClick={handleLogin} disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
+          {error && <p className="error">{error}</p>}
+        </div>
       </div>
     );
   }
