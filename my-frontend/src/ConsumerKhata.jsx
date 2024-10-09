@@ -159,9 +159,7 @@ const ConsumerKhata = () => {
             return consumer; // Return the consumer without wasooli data if fetch fails
           }
           const wasooliData = await wasooliResponse.json();
-          console.log("Wasooli Data:", wasooliData); // Log the fetched wasooli data
-
-          // Check for the latest wasooli update date
+        
           const lastWasooliUpdate = wasooliData.reduce(
             (latest, transaction) => {
               const transactionDate = new Date(

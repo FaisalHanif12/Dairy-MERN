@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { initializeApp } from "firebase/app";
+import { getMessaging, onMessage, getToken as getMessagingToken } from "firebase/messaging";
+
 import Home from './Home';
 import ConsumersSales from './ConsumersDales';
 import RelativesKhata from './RelativesKhata';
@@ -9,35 +12,6 @@ import Employee from './Employee';
 import Sales from './Sales';
 import logo from './cow2.jpg';
 
-  
-// In a component or a service file where you handle user interactions
-
-const subscribeToNotifications = async () => {
-  const serviceWorker = await navigator.serviceWorker.ready;
-  try {
-    const subscription = await serviceWorker.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: 'BNH0BLUThDkgU4nSYlzp8xYl9K2ou46-3IPOUq4qMdufrrZTT-vloR9-38k9QAYXsDnJJV9wOfVL0Kk_EP1kTg4', // Replace 'vapidKeys.publicKey' with the actual public VAPID key
-    });
-    console.log('Subscription:', subscription);
-    const response = await fetch('/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(subscription)
-    });
-    if (!response.ok) {
-      throw new Error('Failed to subscribe for notifications');
-    }
-    console.log('Successfully subscribed for notifications');
-  } catch (error) {
-    console.error('Error subscribing for notifications:', error);
-  }
-};
-
-// Call this function after a user logs in and opts to receive notifications
-
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('isAuthenticated') === 'true');
@@ -46,6 +20,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  
   useEffect(() => {
     // On component mount, check if user is authenticated from localStorage
     const auth = localStorage.getItem('isAuthenticated');
@@ -56,7 +31,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:3001/users', { 
+      const response = await fetch('https://api.maherdairy.com/users', { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
