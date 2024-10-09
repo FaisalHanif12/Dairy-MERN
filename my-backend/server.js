@@ -53,47 +53,6 @@ const User = require('./models/User');  // Path to your User model
 const Wasoolii = require('./models/Wasooli'); // Adjust the path based on where this file is located.
 const Kharchay = require('./models/Kharchay'); // Adjust the path based on where this file is located.
 
-const OneSignal = require('onesignal-node');
-const schedule = require('node-schedule');
-
-// First, instantiate the OneSignal client
-const myClient = new OneSignal.Client({
-    userAuthKey: 'YmRkZmVhZDAtZGM4OC00YzE3LWIyMzYtODQwN2Q3ZTY3MDIy',
-    // Your OneSignal App ID and REST API Key
-    app: { appAuthKey: 'YjBjY2VkN2QtY2YwNy00NDhlLTkyZjQtNWYyYzYwNDdhNGQ1', appId: 'b648732a-bcc8-4c36-a5bf-847a2818d782' }
-});
-
-
-// Schedule to send a notification at 10 AM
-schedule.scheduleJob({hour: 10, minute: 0}, function() {
-    sendNotification("Please add the morning sale of consumers and relatives");
-});
-
-// Schedule to send a notification at 5:30 PM
-schedule.scheduleJob({hour: 17, minute: 30}, function() {
-    sendNotification("Please add the evening sale of consumers and relatives");
-});
-
-// Schedule to send a notification at 7 PM
-schedule.scheduleJob({hour: 19, minute: 0}, function() {
-    sendNotification("Please collect the wasooli from consumers");
-});
-
-function sendNotification(message) {
-    const notification = {
-        contents: {
-            en: message
-        },
-        included_segments: ['Subscribed Users'],  // Target all subscribed users
-        url: "https://maherdairy.com"  // URL to open when the user clicks on the notification
-    };
-
-    myClient.createNotification(notification)
-        .then(response => console.log('Notification sent:', response.body))
-        .catch(err => console.error('Error sending notification:', err));
-}
-
-
 async function updateSalesSummary() {
     try {
         // Calculate total sales from consumers
