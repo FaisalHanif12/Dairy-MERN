@@ -132,7 +132,7 @@ app.get('/sales_summary', async (req, res) => {
 
 app.post('/users', async (req, res) => {
     const { username, password } = req.body;
-    // console.log("Received credentials:", username, password);  // Helpful for debugging, should be removed or secured in production
+   
     try {
       const user = await User.findOne({ username });
       if (!user) {
