@@ -182,8 +182,9 @@ const Employee = () => {
       }
       const consumersData = await response.json();
 
-      // Check the fetched data
       console.log("Fetched consumers data:", consumersData);
+
+      const numberOneConsumerId = "specialIdentifierForNumberOne"; // Define the special identifier
 
       const updatedConsumersData = await Promise.all(
         consumersData.map(async (consumer) => {
@@ -191,19 +192,14 @@ const Employee = () => {
             `https://api.maherdairy.com/kharchay/${consumer._id}`
           );
           if (!wasooliResponse.ok) {
-            console.log(
-              `Failed to fetch wasooli data for consumer ID: ${consumer.idEmployeekhata}`
-            );
-            return consumer; // Return the consumer without wasooli data if fetch fails
+            console.log(`Failed to fetch wasooli data for consumer ID: ${consumer.idEmployeekhata}`);
+            return consumer;
           }
           const wasooliData = await wasooliResponse.json();
 
-          // Check for the latest kharchay update date
           const lastKharchayUpdate = wasooliData.reduce(
             (latest, transaction) => {
-              const transactionDate = new Date(
-                transaction.lastUpdated || Date.now()
-              );
+              const transactionDate = new Date(transaction.lastUpdated || Date.now());
               return transactionDate > latest ? transactionDate : latest;
             },
             new Date(0)
@@ -212,29 +208,40 @@ const Employee = () => {
           return { 
             ...consumer, 
             wasooliTransactions: wasooliData,
-            lastKharchayUpdate, // Add last update date for sorting
+            lastKharchayUpdate
           };
         })
       );
 
-      // Now sort by the lastKharchayUpdate date
       updatedConsumersData.sort((a, b) => {
-      
-        const dateComparison = b.lastKharchayUpdate - a.lastKharchayUpdate;
-
-        // If the dates are the same, sort by employee _id for consistency
-        if (dateComparison === 0) {
-          return b._id.localeCompare(a._id); // Sort by employee ID for consistency
+        // Special handling for the "number one" consumer to keep its position if updated
+        if (a._id === numberOneConsumerId) {
+            if (a.lastKharchayUpdate.getTime() === new Date(0).getTime()) {
+                return -1; // Always keep the "number one" at the top if not updated
+            } else {
+                // Compare the update times to determine if "number one" should still be on top
+                return a.lastKharchayUpdate.getTime() - b.lastKharchayUpdate.getTime() > 0 ? -1 : 1;
+            }
+        } else if (b._id === numberOneConsumerId) {
+            return 1; // Ensure "number one" is moved above all other entries if it's b and updated
         }
+    
+        const dateComparison = b.lastKharchayUpdate - a.lastKharchayUpdate;
+        if (dateComparison === 0) {
+            // If the dates are the same, sort by consumer ID to maintain a consistent order
+            return a._id.localeCompare(b._id);
+        }
+    
+        return dateComparison; // Otherwise, sort by the most recent update
+    });
+    
 
-        return dateComparison; // Otherwise return the date comparison result
-      });
-
-         setConsumers(updatedConsumersData);
+      setConsumers(updatedConsumersData);
     } catch (error) {
       console.error("Fetch error:", error);
     }
-  };
+};
+
 
   useEffect(() => {
     fetchData();

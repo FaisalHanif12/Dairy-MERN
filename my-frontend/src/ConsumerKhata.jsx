@@ -144,58 +144,66 @@ const ConsumerKhata = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("https://api.maherdairy.com/consumerkhata");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const consumersData = await response.json();
-
-      const updatedConsumersData = await Promise.all(
-        consumersData.map(async (consumer) => {
-          const wasooliResponse = await fetch(
-            `https://api.maherdairy.com/wasooli/${consumer._id}`
-          );
-          if (!wasooliResponse.ok) {
-            return consumer; // Return the consumer without wasooli data if fetch fails
-          }
-          const wasooliData = await wasooliResponse.json();
-        
-          const lastWasooliUpdate = wasooliData.reduce(
-            (latest, transaction) => {
-              const transactionDate = new Date(
-                transaction.lastUpdated || Date.now()
-              );
-              return transactionDate > latest ? transactionDate : latest;
-            },
-            new Date(0)
-          );
-
-          return {
-            ...consumer,
-            wasooliTransactions: wasooliData,
-            lastWasooliUpdate,
-          };
-        })
-      );
-
-      updatedConsumersData.sort((a, b) => {
-    
-        const dateComparison = b.lastWasooliUpdate - a.lastWasooliUpdate;
-    
-        // If the dates are the same, sort by consumer name
-        if (dateComparison === 0) {
-            // Additional fallback sort by _id for unique ordering
-            return b._id.localeCompare(a._id); // Ensure the _id comparison is consistent
+        const response = await fetch("https://api.maherdairy.com/consumerkhata");
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    
-        return dateComparison; // Otherwise return the date comparison result
-    });
+        const consumersData = await response.json();
 
-      setConsumers(updatedConsumersData);
+        const numberOneConsumerId = "specialIdentifierForNumberOne"; // Define the special identifier
+
+        const updatedConsumersData = await Promise.all(
+            consumersData.map(async (consumer) => {
+                const wasooliResponse = await fetch(
+                    `https://api.maherdairy.com/wasooli/${consumer._id}`
+                );
+                if (!wasooliResponse.ok) {
+                    console.log(`Failed to fetch wasooli data for consumer ID: ${consumer.idEmployeekhata}`);
+                    return consumer;
+                }
+                const wasooliData = await wasooliResponse.json();
+
+                const lastWasooliUpdate = wasooliData.reduce(
+                    (latest, transaction) => {
+                        const transactionDate = new Date(transaction.lastUpdated || Date.now());
+                        return transactionDate > latest ? transactionDate : latest;
+                    },
+                    new Date(0)
+                );
+
+                return {
+                    ...consumer,
+                    wasooliTransactions: wasooliData,
+                    lastWasooliUpdate
+                };
+            })
+        );
+
+        updatedConsumersData.sort((a, b) => {
+            // Handle the "number one" consumer specially
+            if (a._id === numberOneConsumerId) {
+                if (a.lastWasooliUpdate.getTime() === new Date(0).getTime()) {
+                    return -1; // Always keep the "number one" at the top if not updated
+                } else {
+                    return a.lastWasooliUpdate.getTime() - b.lastWasooliUpdate.getTime() > 0 ? -1 : 1;
+                }
+            } else if (b._id === numberOneConsumerId) {
+                return 1; // Always move "number one" to top if it is `b` and it is updated
+            }
+
+            const dateComparison = b.lastWasooliUpdate - a.lastWasooliUpdate;
+            if (dateComparison === 0) {
+                return b._id.localeCompare(a._id); // Sort by consumer ID for consistency
+            }
+
+            return dateComparison; // Otherwise return the date comparison result
+        });
+
+        setConsumers(updatedConsumersData);
     } catch (error) {
-      console.error("Fetch error:", error);
+        console.error("Fetch error:", error);
     }
-  };
+};
 
   useEffect(() => {
     fetchData();

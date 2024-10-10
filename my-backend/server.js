@@ -53,6 +53,46 @@ const User = require('./models/User');  // Path to your User model
 const Wasoolii = require('./models/Wasooli'); // Adjust the path based on where this file is located.
 const Kharchay = require('./models/Kharchay'); // Adjust the path based on where this file is located.
 
+const OneSignal = require('onesignal-node');
+const schedule = require('node-schedule');
+
+// First, instantiate the OneSignal client
+const myClient = new OneSignal.Client({
+    userAuthKey: 'YmRkZmVhZDAtZGM4OC00YzE3LWIyMzYtODQwN2Q3ZTY3MDIy',
+    // Your OneSignal App ID and REST API Key
+    app: { appAuthKey: 'YjBjY2VkN2QtY2YwNy00NDhlLTkyZjQtNWYyYzYwNDdhNGQ1', appId: 'b648732a-bcc8-4c36-a5bf-847a2818d782' }
+});
+
+
+// Schedule to send a notification at 10 AM
+schedule.scheduleJob({hour: 10, minute: 0}, function() {
+    sendNotification("Please add the morning sale of consumers and relatives");
+});
+
+// Schedule to send a notification at 5:30 PM
+schedule.scheduleJob({hour: 17, minute: 30}, function() {
+    sendNotification("Please add the evening sale of consumers and relatives");
+});
+
+// Schedule to send a notification at 7 PM
+schedule.scheduleJob({hour: 19, minute: 0}, function() {
+    sendNotification("Please collect the wasooli from consumers");
+});
+
+function sendNotification(message) {
+    const notification = {
+        contents: {
+            en: message
+        },
+        included_segments: ['Subscribed Users']  // Target all subscribed users
+    };
+
+    myClient.createNotification(notification)
+        .then(response => console.log('Notification sent:', response.body))
+        .catch(err => console.error('Error sending notification:', err));
+}
+
+
 async function updateSalesSummary() {
     try {
         // Calculate total sales from consumers
@@ -132,7 +172,7 @@ app.get('/sales_summary', async (req, res) => {
 
 app.post('/users', async (req, res) => {
     const { username, password } = req.body;
-   
+    // console.log("Received credentials:", username, password);  // Helpful for debugging, should be removed or secured in production
     try {
       const user = await User.findOne({ username });
       if (!user) {
@@ -767,7 +807,7 @@ app.post('/kharchay', async (req, res) => {
             Wasooli: parseFloat(Wasooli)
         });
         await newKharchay.save();
-
+        await updateSalesSummary();
         // Update the employee's baqaya
         employee.baqaya -= parseFloat(Wasooli);
         await employee.save();
@@ -784,7 +824,7 @@ app.get('/wasooli/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Ensure that the provided ID is a valid MongoDB ObjectId
+        
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ error: 'Invalid Consumer ID format' });
         }
@@ -895,6 +935,8 @@ app.delete('/kharchay/:id', async (req, res) => {
         // Now delete the Kharchay transaction
         await Kharchay.findByIdAndDelete(id);
 
+        await updateSalesSummary();
+
         res.json({ message: 'Kharchay transaction deleted and Baqaya updated.', deletedAmount: wasooliAmount });
     } catch (error) {
         console.error('Error during transaction:', error);
@@ -976,6 +1018,8 @@ app.put('/kharchay/:id', async (req, res) => {
         kharchay.source = source;
         kharchay.Wasooli = parseFloat(wasooliAmount);
         await kharchay.save();
+
+        await updateSalesSummary();
 
         // Subtract the new Wasooli amount from baqaya
         await EmployeeKhata.findByIdAndUpdate(employeeId, { $inc: { baqaya: -parseFloat(wasooliAmount) } });
