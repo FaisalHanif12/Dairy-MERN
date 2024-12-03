@@ -4,12 +4,18 @@
   "private": true,
   "dependencies": {
     "@capacitor/local-notifications": "^6.1.0",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@fortawesome/fontawesome-free": "^6.7.1",
+    "@mui/icons-material": "^6.1.9",
+    "@mui/material": "^6.1.6",
     "@testing-library/jest-dom": "^5.16.3",
     "@testing-library/react": "^12.1.4",
     "@testing-library/user-event": "^13.5.0",
     "chart.js": "^4.4.4",
     "file-saver": "^2.0.5",
     "firebase": "^10.14.0",
+    "jspdf": "^2.5.2",
     "react": "^17.0.2",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^17.0.2",
@@ -45,6 +51,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "cross-env": "^7.0.3"
   }
 }

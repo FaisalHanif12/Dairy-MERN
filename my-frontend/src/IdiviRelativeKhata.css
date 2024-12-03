@@ -1,0 +1,129 @@
+.expenditure-container {
+    max-width: 500px;
+    margin: auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .button {
+    width: 100%;
+    padding: 10px 20px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 20px;
+    margin-top: 20px;
+  }
+  
+  .button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .dropdown-indicator {
+    font-size: 24px;
+    transform: rotate(0deg);
+    transition: transform 0.2s;
+  }
+  
+  .dropdown-indicator.open {
+    transform: rotate(180deg);
+  }
+  
+  .details {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    margin-top: 5px;
+  }
+  
+  .month-button {
+    background-color: #4CAF50;  /* Green background */
+    color: white;               /* White text color */
+    border: none;               /* No border */
+    padding: 10px 20px;         /* Padding around the text */
+    margin: 5px auto;           /* Vertical margin and horizontally centering */
+    margin-top: 10px;
+    cursor: pointer;            /* Pointer cursor on hover */
+    width: calc(100% - 40px);   /* Full width minus padding */
+    text-align: center;         /* Center text */
+    border-radius: 5px;         /* Rounded corners */
+    font-weight: bold;          /* Bold font */
+    display: block;             /* Block display to fill the container */
+}
+
+  .month-button:hover {
+    background-color: #45a049;
+  }
+  .entry-card {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f8f8f8;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .month-details {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: #e0e0e0;
+    margin: 5px 0;
+  }
+  
+  /* Ensure previous CSS is included */
+  .month-total {
+    font-weight: bold;
+    margin-top: 10px;
+    background-color: #dff0d8; /* Light green background for total display */
+    padding: 8px;
+    border-radius: 4px;
+  }
+  .download-pdf-button {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+  .download-pdf-button:hover {
+    background-color: #0056b3;
+  }
+/* Style for the "View All" button */
+.view-button {
+  background-color: #4CAF50; /* Primary color */
+  color: white; /* Text color */
+  padding: 5px 10px; /* Padding around the text */
+  border: none; /* Remove default border */
+  border-radius: 5px; /* Rounded corners */
+  cursor: pointer; /* Pointer cursor on hover */
+  font-size: 13px; /* Adjust font size */
+  margin-right: 20px ; /* Spacing around button */
+  margin-top: 10px;
+  transition: background-color 0.3s ease; /* Smooth color transition */
+}
+
+/* Hover effect */
+.view-button:hover {
+  background-color: #45a049; /* Slightly darker shade */
+}
+
+/* Active state */
+.view-button:active {
+  background-color: #3e8e41; /* Darker color on click */
+  transform: translateY(2px); /* Slight downward shift on click */
+}
+
+/* Alignment and spacing adjustments */
+.view-all-container {
+  display: flex;
+  justify-content: center; /* Center the button horizontally */
+}
+  

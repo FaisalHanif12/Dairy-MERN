@@ -11,13 +11,7 @@ const consumerKhataSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    baqaya: {
-        type: Number,
-        required: true,
-        validate(value) {
-            if (value < 0) throw new Error("Baqaya cannot be negative.");
-        }
-    }
+  
 });
 
 module.exports = mongoose.model('ConsumerKhata', consumerKhataSchema);

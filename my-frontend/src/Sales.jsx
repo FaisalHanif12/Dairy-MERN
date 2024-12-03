@@ -130,7 +130,7 @@ const Sales = () => {
 
   return (
     <div className="sales-container">
-      <button onClick={() => navigate('/')} className="back-arrow">
+      <button onClick={() => navigate('/')} className="back-arrowS">
         &#8592;
       </button>
       <h1 className="sales-title">{translations[language].title}</h1>

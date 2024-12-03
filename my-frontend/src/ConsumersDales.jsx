@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./ConsumersDales.css";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver"; // Import file-saver to handle file downloads
+import People from '@mui/icons-material/People';
 
 const ConsumersDales = () => {
   const navigate = useNavigate();
@@ -19,6 +20,38 @@ const ConsumersDales = () => {
   const [showModal, setShowModal] = useState(false); // You already have this for controlling the visibility of the modal
   const [modalMessage, setModalMessage] = useState(""); // Add this line to manage the modal message
   const [consumerNames, setConsumerNames] = useState([]);
+  const [uniquePriceC, setUniquePriceC] = useState([]);
+  const [uniqueQuantityC, setUniqueQuantityC] = useState([]);
+
+  const buttonLabel =
+    language === "English" ? "Individuals Khata's" : "مفصل صارف کھاتا دیکھیں";
+
+  useEffect(() => {
+    fetchUniquePriceC();
+    fetchUniqueQuantityC();
+  }, []);
+
+  const fetchUniqueQuantityC = async () => {
+    try {
+      const response = await fetch("https://api.maherdairy.com/unique-namescq");
+      const data = await response.json();
+      setUniqueQuantityC(data);
+      console.log(data);
+    } catch (error) {
+      console.error("Error fetching unique names:", error);
+    }
+  };
+
+  const fetchUniquePriceC = async () => {
+    try {
+      const response = await fetch("https://api.maherdairy.com/unique-namescp");
+      const data = await response.json();
+      setUniquePriceC(data);
+      console.log(data);
+    } catch (error) {
+      console.error("Error fetching unique names:", error);
+    }
+  };
 
   const translations = {
     English: {
@@ -110,9 +143,7 @@ const ConsumersDales = () => {
 
   const fetchConsumerNames = async () => {
     try {
-      const response = await fetch(
-        "https://api.maherdairy.com/consumerkhata"
-      ); // Update with correct API endpoint
+      const response = await fetch("https://api.maherdairy.com/consumerkhata"); // Update with correct API endpoint
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -132,14 +163,11 @@ const ConsumersDales = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch(
-        "https://api.maherdairy.com/consumerssale",
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
+      const response = await fetch("https://api.maherdairy.com/consumerssale", {
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -182,7 +210,8 @@ const ConsumersDales = () => {
   // ... rest of your component
   const generateReport = () => {
     // Generate individual transaction details
-    const reportData = expenses.map((expense) => {
+    const reportData = expenses
+      .map((expense) => {
         const date = new Date(expense.Date).toLocaleDateString();
         const name = expense.Name;
         const quantity = expense.Quantity;
@@ -192,32 +221,45 @@ const ConsumersDales = () => {
         return language === "English"
           ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
           : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
-    }).join("\n\n"); // Ensure spacing between each transaction
+      })
+      .join("\n\n"); // Ensure spacing between each transaction
 
     // Calculate and format monthly sales
     const monthlyExpenses = getMonthlyExpenses();
-    const monthlyReport = Object.entries(monthlyExpenses).map(([monthYear, total]) => {
+    const monthlyReport = Object.entries(monthlyExpenses)
+      .map(([monthYear, total]) => {
         return language === "English"
           ? `${monthYear}: Total Sales = ${total}`
           : `${monthYear}: کل فروخت = ${total}`;
-    }).join("\n\n"); // Ensure spacing between each month's summary
+      })
+      .join("\n\n"); // Ensure spacing between each month's summary
 
     // Calculate and format overall sales
     const overallExpenses = getOverallExpenses();
-    const overallReport = language === "English"
+    const overallReport =
+      language === "English"
         ? `Overall Sales: Total = ${overallExpenses}`
         : `کل فروخت: مجموعی = ${overallExpenses}`;
 
     // Assemble the full report with headings and all entries, ensuring line breaks after headers
     const reportHeader = `${translations[language].title}\n\n`;
-    const detailedTransactionsHeader = language === "English" ? "Detailed Transactions:\n\n" : "معاملات کی تفصیل:\n\n";
-    const monthlySummaryHeader = language === "English" ? "Monthly Expense Summary:\n\n" : "ماہانہ اخراجات کا خلاصہ:\n\n";
-    const overallSummaryHeader = language === "English" ? "Overall Sales Summary:\n\n" : "کل فروخت کا خلاصہ:\n\n";
+    const detailedTransactionsHeader =
+      language === "English"
+        ? "Detailed Transactions:\n\n"
+        : "معاملات کی تفصیل:\n\n";
+    const monthlySummaryHeader =
+      language === "English"
+        ? "Monthly Expense Summary:\n\n"
+        : "ماہانہ اخراجات کا خلاصہ:\n\n";
+    const overallSummaryHeader =
+      language === "English"
+        ? "Overall Sales Summary:\n\n"
+        : "کل فروخت کا خلاصہ:\n\n";
 
     const fullReport = `${reportHeader}${detailedTransactionsHeader}${reportData}\n\n${monthlySummaryHeader}${monthlyReport}\n\n${overallSummaryHeader}${overallReport}`;
 
     return fullReport;
-};
+  };
 
   // Handle download report
   const handleDownloadReport = () => {
@@ -414,14 +456,11 @@ const ConsumersDales = () => {
         console.log("Sale updated successfully");
       } else {
         // This means we're adding a new sale (POST request)
-        response = await fetch(
-          "https://api.maherdairy.com/consumerssale",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(expensePayload),
-          }
-        );
+        response = await fetch("https://api.maherdairy.com/consumerssale", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(expensePayload),
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -618,6 +657,7 @@ const ConsumersDales = () => {
       <button onClick={() => navigate("/")} className="back-arrow">
         &#8592;
       </button>
+
       <h1 className="expenditure-title">{translations[language].title}</h1>
       <button
         onClick={() =>
@@ -627,6 +667,14 @@ const ConsumersDales = () => {
       >
         {language === "English" ? "اردو" : "English"}
       </button>
+
+      <div
+        className="custom-icon-wrapper"
+        onClick={() => navigate("/idConsumerKhata")}
+      >
+        <People style={{ fontSize: 30, color: "#ff6347" }} />
+      </div>
+
       <form className="expenditure-form" onSubmit={handleSave}>
         <label htmlFor="date" className="expenditure-label">
           {translations[language].date}:
@@ -667,6 +715,7 @@ const ConsumersDales = () => {
         <input
           type="number"
           id="quantity"
+          list="consumerNames1"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           className="expenditure-input"
@@ -674,18 +723,39 @@ const ConsumersDales = () => {
           required
         />
 
+        <datalist id="consumerNames1">
+          {uniqueQuantityC.length > 0 ? (
+            uniqueQuantityC.map((quantity, index) => (
+              <option key={index} value={quantity} />
+            ))
+          ) : (
+            <option value="No Quantity available" />
+          )}
+        </datalist>
+
         <label htmlFor="amount" className="expenditure-label">
           {translations[language].pricePerKilo}:
         </label>
         <input
           type="number"
           id="amount"
+          list="consumerNames2"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="expenditure-input"
           placeholder={translations[language].price}
           required
         />
+
+        <datalist id="consumerNames2">
+          {uniquePriceC.length > 0 ? (
+            uniquePriceC.map((Price, index) => (
+              <option key={index} value={Price} />
+            ))
+          ) : (
+            <option value="No price per kilo available" />
+          )}
+        </datalist>
 
         <button type="submit" className="save-button">
           {translations[language].save}

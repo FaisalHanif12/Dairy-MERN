@@ -12,6 +12,18 @@ export const NavbarData = [
 		link: '/about',
 	},
 	{
+		title: 'Idividuals Relative Khata',
+		link: '/idiviRelativeKhata',
+	},
+	{
+		title: 'Idividuals Consumer Khata',
+		link: '/idConsumerKhata',
+	},
+	{
+		title: 'Idividuals Gher Khata',
+		link: '/gherkhata',
+	},
+	{
 		title: 'Consumer khata',
 		link: '/contact',
 	},

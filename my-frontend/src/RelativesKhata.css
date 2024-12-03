@@ -286,3 +286,34 @@
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
   }
   
+  .custom-icon-wrapper {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    cursor: pointer; /* Indicate that the icon is clickable */
+  }
+  
+  .custom-icon {
+    font-size: 30px; /* Adjust the size of the icon */
+    color: #ff6347; /* Icon color */
+    transition: transform 0.3s ease, color 0.3s ease; /* Add hover effect */
+  }
+  
+  .custom-icon:hover {
+    transform: scale(1.2); /* Slight zoom on hover */
+    color: #ff4500; /* Change color on hover */
+  }
+
+  
+.back-arrowR {
+    font-size: 24px;
+    margin-top: 0px;
+    margin-left: 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #333; /* Set color */
+  }

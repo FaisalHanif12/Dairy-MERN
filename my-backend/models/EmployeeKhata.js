@@ -13,9 +13,6 @@ const employeeKhataSchema = new mongoose.Schema({
     baqaya: {
         type: Number,
         required: true,
-        validate(value) {
-            if (value < 0) throw new Error("Baqaya cannot be negative.");
-        },
     },
 });
 

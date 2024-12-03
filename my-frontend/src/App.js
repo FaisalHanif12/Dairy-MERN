@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { initializeApp } from "firebase/app";
-import { getMessaging, onMessage, getToken as getMessagingToken } from "firebase/messaging";
 
 import Home from './Home';
 import ConsumersSales from './ConsumersDales';
@@ -11,7 +9,10 @@ import Expenditure from './Expenditure';
 import Employee from './Employee';
 import Sales from './Sales';
 import logo from './cow2.jpg';
-
+import IdiviRelativeKhata from './IdiviRelativeKhata'; // 
+import IdConsumerKhata from './IdConsumerKhata'; // 
+import Gherkhata from './Gherkhata'; // 
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('isAuthenticated') === 'true');
@@ -51,10 +52,6 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');  // Remove authentication state from localStorage
-    setIsAuthenticated(false);  // Update state to reflect logout
-  };
 
   if (!isAuthenticated) {
     return (
@@ -83,6 +80,10 @@ function App() {
         <Route path="/expenditure" element={<Expenditure />} />
         <Route path="/employee" element={<Employee />} />
         <Route path="/sales" element={<Sales />} />
+        <Route path="/idiviRelativeKhata" element={<IdiviRelativeKhata/>} />
+        <Route path="/idConsumerKhata" element={<IdConsumerKhata/>} />
+        <Route path="/gherkhata" element={<Gherkhata/>} />
+
       </Routes>
     </Router>
   );

@@ -39,9 +39,7 @@ const allowedOrigins = [
     callback(null, corsOptions); // Pass the options to the callback
   };
   
-  // Load CORS before any routes
-  app.use(cors(corsOptionsDelegate));
-
+app.use(cors(corsOptionsDelegate));
 
 const ConsumerSale = require('./models/ConsumerSale');
 const RelativeSale = require('./models/RelativeSale');  // Make sure this line is correct
@@ -52,60 +50,18 @@ const SalesSummary = require('./models/SalesSummary');
 const User = require('./models/User');  // Path to your User model
 const Wasoolii = require('./models/Wasooli'); // Adjust the path based on where this file is located.
 const Kharchay = require('./models/Kharchay'); // Adjust the path based on where this file is located.
-
-const OneSignal = require('onesignal-node');
-const schedule = require('node-schedule');
-
-// First, instantiate the OneSignal client
-const myClient = new OneSignal.Client({
-    userAuthKey: 'YmRkZmVhZDAtZGM4OC00YzE3LWIyMzYtODQwN2Q3ZTY3MDIy',
-    // Your OneSignal App ID and REST API Key
-    app: { appAuthKey: 'YjBjY2VkN2QtY2YwNy00NDhlLTkyZjQtNWYyYzYwNDdhNGQ1', appId: 'b648732a-bcc8-4c36-a5bf-847a2818d782' }
-});
-
-
-// Schedule to send a notification at 10 AM
-schedule.scheduleJob({hour: 10, minute: 0}, function() {
-    sendNotification("Please add the morning sale of consumers and relatives");
-});
-
-// Schedule to send a notification at 5:30 PM
-schedule.scheduleJob({hour: 17, minute: 30}, function() {
-    sendNotification("Please add the evening sale of consumers and relatives");
-});
-
-// Schedule to send a notification at 7 PM
-schedule.scheduleJob({hour: 19, minute: 0}, function() {
-    sendNotification("Please collect the wasooli from consumers");
-});
-
-function sendNotification(message) {
-    const notification = {
-        contents: {
-            en: message
-        },
-        included_segments: ['Subscribed Users']  // Target all subscribed users
-    };
-
-    myClient.createNotification(notification)
-        .then(response => console.log('Notification sent:', response.body))
-        .catch(err => console.error('Error sending notification:', err));
-}
-
+const GherKhataWasooli = require("./models/GherKhatawasooli"); // Assuming your schema is in models/wasooli.model.js
 
 async function updateSalesSummary() {
     try {
-        // Calculate total sales from consumers
-        const totalSalesConsumers = await ConsumerSale.aggregate([
+            const totalSalesConsumers = await ConsumerSale.aggregate([
             { $group: { _id: null, total: { $sum: "$Total" }, totalMilk: { $sum: "$Quantity" } } }
         ]);
 
-        // Calculate total sales from relatives
         const totalSalesRelatives = await RelativeSale.aggregate([
             { $group: { _id: null, total: { $sum: "$RTotal" }, totalMilk: { $sum: "$Quantity" } } }
         ]);
 
-        // Calculate total expenditures from Expenditure collection
         const totalExpendituresFromExpenditure = await Expenditure.aggregate([
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
@@ -114,23 +70,17 @@ async function updateSalesSummary() {
         const totalExpendituresFromKharchays = await Kharchay.aggregate([
             { $group: { _id: null, total: { $sum: "$Wasooli" } } }
         ]);
-
-     
-        // Check if both aggregation results return values
+        
         const totalExpenditureFromExpenditure = totalExpendituresFromExpenditure.length > 0 ? totalExpendituresFromExpenditure[0].total : 0;
         const totalExpenditureFromKharchays = totalExpendituresFromKharchays.length > 0 ? totalExpendituresFromKharchays[0].total : 0;
 
-        // Calculate the total expenditure by summing up values from both collections
         const totalExpenditure = totalExpenditureFromExpenditure + totalExpenditureFromKharchays;
-
-      
-        // Calculate total sales and profit
+     
         const totalSales = (totalSalesConsumers[0]?.total || 0) + (totalSalesRelatives[0]?.total || 0);
         const profit = totalSales - totalExpenditure;
 
-        // Upsert the sales summary with total_expenditure and profit
         await SalesSummary.findOneAndUpdate(
-            { summaryId: 1 },  // Ensure we're updating the correct summary record
+            { summaryId: 1 },  
             {
                 total_sales: totalSales,
                 total_expenditure: totalExpenditure,  // Combined total expenditure
@@ -145,6 +95,118 @@ async function updateSalesSummary() {
     }
 }
 
+app.post('/add', async (req, res) => {
+    try {
+        const { Rname, amount, date } = req.body;
+
+        // Save the new Wasooli entry
+        const newWasooli = new GherKhataWasooli({ Rname, amount, date });
+        await newWasooli.save();
+
+        // Recalculate totalSales dynamically by summing all Wasooli amounts for the Rname
+        const wasoolis = await GherKhataWasooli.find({ Rname });
+        const totalSales = wasoolis.reduce((sum, wasooli) => sum + wasooli.amount, 0);
+
+        res.status(200).json({
+            message: 'Wasooli added successfully!',
+            updatedTotalSales: totalSales, // Send updated totalSales back to the client
+        });
+    } catch (error) {
+        console.error("Error when saving Wasooli:", error);
+        res.status(500).json({ message: 'Error adding Wasooli', error: error.message });
+    }
+});
+
+
+  
+ app.put('/updatewasooli/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { amount, date } = req.body;
+  
+      const updatedWasooli = await GherKhataWasooli.findByIdAndUpdate(
+        id,
+        { amount, date },
+        { new: true } // Return the updated document
+      );
+  
+      if (!updatedWasooli) {
+        return res.status(404).json({ message: 'Wasooli not found' });
+      }
+  
+      return res.status(200).json({ message: 'Wasooli updated successfully!', data: updatedWasooli });
+    } catch (error) {
+      return res.status(500).json({ message: 'Error updating Wasooli', error });
+    }
+  });
+    
+  app.delete('/deletewasooli/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Delete Wasooli entry by ID
+        const deletedWasooli = await GherKhataWasooli.findByIdAndDelete(id);
+
+        if (!deletedWasooli) {
+            return res.status(404).json({ message: 'Wasooli not found' });
+        }
+
+        return res.status(200).json({ message: 'Wasooli deleted successfully!' });
+    } catch (error) {
+        console.error('Error deleting Wasooli:', error);
+        return res.status(500).json({ message: 'Error deleting Wasooli', error });
+    }
+}); 
+
+
+app.get('/getwasoolis/:Rname', async (req, res) => {
+    try {
+      const { Rname } = req.params;
+      
+      // Fetch all Wasoolis for a specific Rname
+      const wasoolis = await GherKhataWasooli.find({ Rname });
+  
+      if (wasoolis.length === 0) {
+        return res.status(404).json({ message: 'No Wasoolis found for this Rname' });
+      }
+  
+      return res.status(200).json(wasoolis);
+    } catch (error) {
+      return res.status(500).json({ message: 'Error fetching Wasoolis', error });
+    }
+});
+
+
+app.get('/relatives/:name', async (req, res) => {
+    const { name } = req.params;
+
+    try {
+        const salesData = await RelativeSale.find({
+            Rname: name
+        }).sort({Date: 1}); // Sorting by Date might be helpful
+
+        res.json(salesData);
+    } catch (error) {
+        console.error('Error fetching relative sales data:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+app.get('/consumerssale/:name', async (req, res) => {
+    const { name } = req.params;
+
+    try {
+        // Fetching data using mongoose model, sorting it by the date in ascending order
+        const salesData = await ConsumerSale.find({
+            Name: name  // make sure to use the field name exactly as defined in the schema
+        }).sort('Date');  // Sorting documents by the Date field
+
+        res.json(salesData);
+    } catch (error) {
+        console.error('Error fetching consumer sales data:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
 
 
 app.get('/sales_summary', async (req, res) => {
@@ -168,7 +230,6 @@ app.get('/sales_summary', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
 
 app.post('/users', async (req, res) => {
     const { username, password } = req.body;
@@ -208,6 +269,30 @@ app.get('/unique-names', async (req, res) => {
     }
 });
 
+app.get('/unique-namescq', async (req, res) => {
+    try {
+        // Fetch distinct consumer names from MongoDB
+        const uniqueQuantityR = await ConsumerSale.distinct('Quantity');
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniqueQuantityR);
+    } catch (err) {
+        console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/unique-namescp', async (req, res) => {
+    try {
+        // Fetch distinct consumer names from MongoDB
+        const uniquepriceR = await ConsumerSale.distinct('UnitPrice');
+        res.setHeader('Content-Type', 'application/json');~
+        res.json(uniquepriceR);
+    } catch (err) {
+        console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 app.get('/unique-namesr', async (req, res) => {
     try {
         const uniqueNames = await RelativeSale.distinct('Rname');
@@ -215,6 +300,29 @@ app.get('/unique-namesr', async (req, res) => {
         res.json(uniqueNames);
     } catch (err) {
         console.error('Error fetching unique names:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/unique-namesrq', async (req, res) => {
+    try {
+        const uniqueQuantity = await RelativeSale.distinct('Quantity'); // Adjust field names if different
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniqueQuantity);
+    } catch (err) {
+        console.error('Error fetching sales data:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+app.get('/unique-namesrp', async (req, res) => {
+    try {
+        const uniquePrice = await RelativeSale.distinct('RUnitPrice'); // Adjust field names if different
+        res.setHeader('Content-Type', 'application/json');
+        res.json(uniquePrice);
+    } catch (err) {
+        console.error('Error fetching sales data:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -645,7 +753,6 @@ app.post('/consumerkhata', async (req, res) => {
     }
 });
 
-
 app.post('/employeekhata', async (req, res) => {
     const { date, name, baqaya } = req.body;
 
@@ -714,8 +821,6 @@ app.put('/consumerkhata/:id', async (req, res) => {
     }
 });
 
-
-
 app.put('/employeekhata/:id', async (req, res) => {
     const { id } = req.params;
     const { date, name, baqaya } = req.body;
@@ -750,6 +855,8 @@ app.put('/employeekhata/:id', async (req, res) => {
 });
 
 
+
+
 app.post('/wasooli', async (req, res) => {
     const { date, Wasooli: wasooliAmount, consumerId } = req.body;
 
@@ -762,7 +869,6 @@ app.post('/wasooli', async (req, res) => {
         if (!consumer) {
             return res.status(404).json({ error: "Consumer not found" });
         }
-
         // Create a new Wasooli entry
         const newWasooli = new Wasoolii({
             consumerKhataId: consumerId,
@@ -788,9 +894,10 @@ app.post('/kharchay', async (req, res) => {
     const { date, source, Wasooli, consumerId } = req.body;
 
     // Input validation
-    if (!date || Wasooli === undefined || isNaN(parseInt(Wasooli)) || parseInt(Wasooli) < 0 || !consumerId) {
+    if (!date || isNaN(parseInt(Wasooli)) || parseInt(Wasooli) <= 0 || !consumerId) {
         return res.status(400).send({ error: "Missing, invalid, or negative Wasooli amount, or missing consumer ID" });
     }
+
 
     try {
         // Check if employee exists in the EmployeeKhata model

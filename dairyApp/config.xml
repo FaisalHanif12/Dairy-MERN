@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.example.dairyApp" version="1.0.0" 
+        xmlns="http://www.w3.org/ns/widgets" 
+        xmlns:cdv="http://cordova.apache.org/ns/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>DairyApp</name>
+    <description>Sample Apache Cordova App that includes downloading reports.</description>
+    <author email="mehrfaisal111@gmail.com" href="http://maherdairy.com">
+        Developer
+    </author>   
+      Apache Cordova Team
+    </author>
+    <content src="http://maherdairy.com" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <access origin="*" />
+    <platform name="android">
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/uses-permission">
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+        </edit-config>
+        <preference name="AndroidPersistentFileLocation" value="Compatibility" />
+    </platform>
+</widget>

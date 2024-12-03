@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./RelativesKhata.css";
 import { useNavigate } from "react-router-dom";
-
-import { saveAs } from 'file-saver'; // Import file-saver to handle file downloads
+import { saveAs } from "file-saver"; // Import file-saver to handle file downloads
+import People from '@mui/icons-material/People';
 
 const RelativesKhata = () => {
   const navigate = useNavigate();
@@ -28,17 +28,46 @@ const RelativesKhata = () => {
   const [modalMessage, setModalMessage] = useState(""); // Add this line to manage the modal message
   const [language, setLanguage] = useState("English");
   const [uniqueNames, setUniqueNames] = useState([]);
+  const [uniqueQuantity, setUniqueQuantity] = useState([]);
+  const [uniquePrice, setUniquePrice] = useState([]);
+  
+  const buttonLabel =
+    language === "English" ? "Individuals Khata" : "مفصل خاندانی کھاتا دیکھیں";
 
   useEffect(() => {
     fetchUniqueNames();
+    fetchUniqueQuantity();
+    fetchUniquePrice();
   }, []);
 
- 
   const fetchUniqueNames = async () => {
     try {
       const response = await fetch("https://api.maherdairy.com/unique-namesr");
       const data = await response.json();
       setUniqueNames(data);
+      console.log(data);
+    } catch (error) {
+      console.error("Error fetching unique names:", error);
+    }
+  };
+
+  const fetchUniqueQuantity = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/unique-namesrq");
+      const data = await response.json();
+      setUniqueQuantity(data);
+      console.log(data);
+    } catch (error) {
+      console.error("Error fetching unique names:", error);
+    }
+  };
+
+  const fetchUniquePrice = async () => {
+    try {
+      const response = await fetch("http://localhost:3001/unique-namesrp");
+      const data = await response.json();
+      setUniquePrice(data);
+      console.log(data);
     } catch (error) {
       console.error("Error fetching unique names:", error);
     }
@@ -108,7 +137,7 @@ const RelativesKhata = () => {
       In: "میں",
       record: "ریکارڈ اپ ڈیٹ ہو گیا ہے",
       transcation: "تفصیلی لین دین",
-      monthlye: "ماہانہ اخراجات کا خلاصہ" ,
+      monthlye: "ماہانہ اخراجات کا خلاصہ",
     },
   };
   const monthTranslations = {
@@ -150,10 +179,10 @@ const RelativesKhata = () => {
     fetchData();
   }, []);
 
-
   const generateReport = () => {
     // Detailed transaction data for each entry
-    const reportData = expenses.map((expense) => {
+    const reportData = expenses
+      .map((expense) => {
         const date = new Date(expense.Date).toLocaleDateString();
         const name = expense.Rname; // Use 'Rname' for relative's name
         const quantity = expense.Quantity;
@@ -163,19 +192,23 @@ const RelativesKhata = () => {
         return language === "English"
           ? `Date: ${date}, Name: ${name}, Quantity: ${quantity}, Price per kilo: ${unitPrice}, Total: ${total}`
           : `تاریخ: ${date}, نام: ${name}, مقدار: ${quantity}, فی کلو قیمت: ${unitPrice}, کل: ${total}`;
-    }).join("\n\n"); // Ensures there is a blank line between each entry for clarity
+      })
+      .join("\n\n"); // Ensures there is a blank line between each entry for clarity
 
     // Monthly sales summary
     const monthlyExpenses = getMonthlyExpenses();
-    const monthlyReport = Object.entries(monthlyExpenses).map(([monthYear, total]) => {
+    const monthlyReport = Object.entries(monthlyExpenses)
+      .map(([monthYear, total]) => {
         return language === "English"
           ? `${monthYear}: Total Sales = ${total}`
           : `${monthYear}: کل فروخت = ${total}`;
-    }).join("\n\n"); // Each month's summary is separated by a blank line
+      })
+      .join("\n\n"); // Each month's summary is separated by a blank line
 
     // Overall sales summary
     const overallExpenses = getOverallExpenses();
-    const overallReport = language === "English"
+    const overallReport =
+      language === "English"
         ? `Overall Sales: Total = ${overallExpenses.toFixed(2)}`
         : `کل فروخت: مجموعی = ${overallExpenses.toFixed(2)}`;
 
@@ -188,18 +221,14 @@ const RelativesKhata = () => {
     const fullReport = `${reportHeader}${transactionHeader}${reportData}\n\n${monthlySummaryHeader}${monthlyReport}\n\n${overallSummaryHeader}${overallReport}`;
 
     return fullReport;
-};
+  };
 
-
-  
   // Handle download report
   const handleDownloadReport = () => {
     const report = generateReport();
     const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
     saveAs(blob, `RelativeSalesReport_${language}.txt`);
   };
-
-
 
   const toggleGroupVisibility = (monthYear) => {
     setGlobalVisibility((prevGlobalState) => {
@@ -270,11 +299,14 @@ const RelativesKhata = () => {
       if (editIndex >= 0) {
         // Use the '_id' property of MongoDB instead of 'idRelatives'
         const expenseId = expenses[editIndex]._id; // Adjust to MongoDB _id field
-        response = await fetch(`https://api.maherdairy.com/relatives/${expenseId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(expensePayload),
-        });
+        response = await fetch(
+          `https://api.maherdairy.com/relatives/${expenseId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(expensePayload),
+          }
+        );
 
         // Properly handle the update message with monthYear and updated notice
 
@@ -437,9 +469,10 @@ const RelativesKhata = () => {
   const toggleMonthlySalesVisibility = () => {
     setShowMonthlySales((prevShow) => !prevShow); // Toggle the visibility state
   };
+
   return (
     <div className="expenditure-container">
-      <button onClick={() => navigate("/")} className="back-arrow">
+      <button onClick={() => navigate("/")} className="back-arrowR">
         &#8592;
       </button>
       <h1 className="expenditure-title">
@@ -453,6 +486,14 @@ const RelativesKhata = () => {
       >
         {language === "English" ? "اردو" : "English"}
       </button>
+
+      <div
+        className="custom-icon-wrapper"
+        onClick={() => navigate("/idConsumerKhata")}
+      >
+        <People style={{ fontSize: 30, color: "#ff6347" }} />
+      </div>
+
       <form className="expenditure-form" onSubmit={handleSave}>
         <label htmlFor="date" className="expenditure-label">
           {translations[language].date}
@@ -495,6 +536,7 @@ const RelativesKhata = () => {
         <input
           type="number"
           id="quantity"
+          list="consumerNames1"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           className="expenditure-input"
@@ -502,18 +544,39 @@ const RelativesKhata = () => {
           required
         />
 
+        <datalist id="consumerNames1">
+          {uniqueQuantity.length > 0 ? (
+            uniqueQuantity.map((quantity, index) => (
+              <option key={index} value={quantity} />
+            ))
+          ) : (
+            <option value="No Quantity available" />
+          )}
+        </datalist>
+
         <label htmlFor="amount" className="expenditure-label">
           {translations[language].pricePerKilo}
         </label>
         <input
           type="number"
           id="amount"
+          list="consumerNames2"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="expenditure-input"
           placeholder={translations[language].enterPricePerKilo}
           required
         />
+
+        <datalist id="consumerNames2">
+          {uniquePrice.length > 0 ? (
+            uniquePrice.map((Price, index) => (
+              <option key={index} value={Price} />
+            ))
+          ) : (
+            <option value="No price per kilo available" />
+          )}
+        </datalist>
 
         <button type="submit" className="save-button">
           {translations[language].save}
@@ -568,7 +631,6 @@ const RelativesKhata = () => {
           ? translations[language].hideAll
           : translations[language].showAll}
       </button>
-
 
       <button onClick={handleDownloadReport} className="download-button">
         {translations[language].download}
