@@ -489,7 +489,7 @@ const RelativesKhata = () => {
 
       <div
         className="custom-icon-wrapper"
-        onClick={() => navigate("/idConsumerKhata")}
+        onClick={() => navigate("/idiviRelativeKhata")}
       >
         <People style={{ fontSize: 30, color: "#ff6347" }} />
       </div>
